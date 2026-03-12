@@ -771,10 +771,7 @@ function buildMsg(sec){
   const grp=arr=>{const g={};arr.forEach(p=>{g[p.vianda]=(g[p.vianda]||0)+1;});return g;};
   const fmt=g=>Object.entries(g).map(([k,n])=>`  ${n}x ${k} — ${vLabel(k)}`).join('\n');
   if(sec==='obras'){
-    const of=act.filter(p=>p.sector==='O'),ta=act.filter(p=>p.sector==='T');
-    let m=`📋 PEDIDO UTE INGENIERÍA & CONSTRUCCIONES\n${hoy}\n\n`;
-    if(of.length)m+=`🏢 OFICINA (${of.length})\n${fmt(grp(of))}\n\n`;
-    if(ta.length)m+=`🔧 TALLER (${ta.length})\n${fmt(grp(ta))}\n`;
+    let m=`📋 PEDIDO UTE INGENIERÍA & CONSTRUCCIONES\n${hoy}\n\nTotal: ${act.length} viandas\n${fmt(grp(act))}`;
     return m.trim();
   }
   return `📋 PEDIDO UTE CENTRAL\n${hoy}\n\nTotal: ${act.length} viandas\n${fmt(grp(act))}`;
@@ -834,6 +831,37 @@ function imprimirLista(sec){
     </tr>`;
   }).join('');
   const headerCom=sec==='obras'?'<th style="padding:8px 12px;background:#f5f5f5;border-bottom:2px solid #333;text-align:center">Comedor</th>':'';
+  // Resumen por sector (solo para obras)
+  let resumenHtml = '';
+  if(sec==='obras'){
+    const actReal = sorted.filter(p=>p.vianda!=='VAC'&&p.vianda!=='AUS');
+    const grpSec = (sector) => {
+      const g={};
+      actReal.filter(p=>p.sector===sector).forEach(p=>{g[p.vianda]=(g[p.vianda]||0)+1;});
+      return Object.entries(g).map(([k,n])=>`<tr><td style="padding:5px 10px;border-bottom:1px solid #e8e8e8">${k} — ${vLabel(k)}</td><td style="padding:5px 10px;border-bottom:1px solid #e8e8e8;text-align:center;font-weight:700">${n}</td></tr>`).join('');
+    };
+    const rowsO = grpSec('O'), rowsT = grpSec('T');
+    const totalO = actReal.filter(p=>p.sector==='O').length;
+    const totalT = actReal.filter(p=>p.sector==='T').length;
+    resumenHtml = `
+      <div style="margin-top:32px;display:flex;gap:24px;flex-wrap:wrap">
+        <div style="flex:1;min-width:200px;border:2px solid #333;border-radius:6px;overflow:hidden">
+          <div style="background:#333;color:#fff;padding:8px 12px;font-weight:700;font-size:13px">🏢 OFICINA — ${totalO} vianda${totalO!==1?'s':''}</div>
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead><tr><th style="padding:5px 10px;background:#f5f5f5;text-align:left">Vianda</th><th style="padding:5px 10px;background:#f5f5f5;text-align:center">Cant.</th></tr></thead>
+            <tbody>${rowsO||'<tr><td colspan="2" style="padding:8px 10px;color:#999">Sin pedidos</td></tr>'}</tbody>
+          </table>
+        </div>
+        <div style="flex:1;min-width:200px;border:2px solid #333;border-radius:6px;overflow:hidden">
+          <div style="background:#333;color:#fff;padding:8px 12px;font-weight:700;font-size:13px">🔧 TALLER — ${totalT} vianda${totalT!==1?'s':''}</div>
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead><tr><th style="padding:5px 10px;background:#f5f5f5;text-align:left">Vianda</th><th style="padding:5px 10px;background:#f5f5f5;text-align:center">Cant.</th></tr></thead>
+            <tbody>${rowsT||'<tr><td colspan="2" style="padding:8px 10px;color:#999">Sin pedidos</td></tr>'}</tbody>
+          </table>
+        </div>
+      </div>`;
+  }
+
   const html=`<!DOCTYPE html><html><head><meta charset="UTF-8">
     <title>Pedidos ${secLabel} — ${hoy}</title>
     <style>body{font-family:Arial,sans-serif;padding:24px;color:#111}h2{margin-bottom:4px;font-size:18px}.fecha{color:#555;font-size:13px;margin-bottom:20px}table{width:100%;border-collapse:collapse;font-size:14px}th{padding:8px 12px;background:#f5f5f5;border-bottom:2px solid #333;text-align:left}tr:last-child td{border-bottom:none}@media print{body{padding:12px}}</style>
@@ -841,6 +869,7 @@ function imprimirLista(sec){
     <h2>${secLabel}</h2><div class="fecha">${hoy}</div>
     <table><thead><tr><th>Nombre y Apellido</th>${headerCom}<th>Vianda</th><th style="text-align:center;width:60px">✓</th></tr></thead>
     <tbody>${filas}</tbody></table>
+    ${resumenHtml}
   </body></html>`;
   const w=window.open('','_blank','width=700,height=600');
   w.document.write(html); w.document.close(); w.focus();
