@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Viandas — UTE</title>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;700&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --border: #2a2d3a;
+    --accent: #e8c547;
+    --danger: #ff5c5c;
+    --success: #4ecb71;
+    --warn: #ff8c42;
+    --text: #e8eaf0;
+    --muted: #6b7080;
+    --col-O: #4da6ff;
+    --col-T: #ff8c42;
+    --col-vac: #a78bfa;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'IBM Plex Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  header {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 0 20px; display: flex; align-items: center; justify-content: space-between;
+    height: 56px; position: sticky; top: 0; z-index: 100;
+  }
+  .logo { font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 14px; letter-spacing: 2px; color: var(--accent); }
+  .logo span { color: var(--muted); }
+  .nav-tabs { display: flex; gap: 3px; flex-wrap: wrap; }
+  .nav-tab {
+    padding: 7px 13px; border-radius: 6px; border: none; cursor: pointer;
+    font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; font-weight: 500;
+    background: transparent; color: var(--muted); transition: all .2s;
+  }
+  .nav-tab.active { background: var(--border); color: var(--text); }
+  .nav-tab[data-tab="obras"].active   { color: var(--col-T); }
+  .nav-tab[data-tab="central"].active { color: var(--col-O); }
+  .nav-tab[data-tab="gestion"].active { color: var(--accent); }
+  .nav-tab:hover { background: var(--border); }
+
+  .page { display: none; padding: 28px 20px; max-width: 700px; margin: 0 auto; }
+  .page.active { display: block; }
+
+  .date-banner {
+    background: var(--surface); border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    padding: 12px 18px; border-radius: 8px; margin-bottom: 24px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .date-label { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; }
+  .date-value { font-size: 16px; font-weight: 700; color: var(--accent); font-family: 'IBM Plex Mono', monospace; margin-top: 3px; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+  .card-title { font-size: 10px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 18px; }
+
+  label { display: block; font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 7px; }
+  .field { margin-bottom: 18px; }
+
+  select, input[type="date"], input[type="password"], input[type="text"] {
+    width: 100%; padding: 11px 14px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif; font-size: 14px;
+    outline: none; transition: border-color .2s;
+    appearance: none; -webkit-appearance: none;
+  }
+  select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7080' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+  select:focus, input:focus { border-color: var(--accent); }
+  select:disabled { opacity: .35; cursor: not-allowed; }
+
+  .sector-toggle { display: flex; gap: 10px; }
+  .sector-btn {
+    flex: 1; padding: 13px 10px; border: 2px solid var(--border); border-radius: 8px;
+    background: var(--bg); color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all .2s; text-align: center;
+  }
+  .sector-btn.sel-O { border-color: var(--col-O); color: var(--col-O); background: rgba(77,166,255,.08); }
+  .sector-btn.sel-T { border-color: var(--col-T); color: var(--col-T); background: rgba(255,140,66,.08); }
+
+  .btn-submit {
+    width: 100%; padding: 13px; background: var(--accent); color: #0f1117;
+    border: none; border-radius: 8px;
+    font-family: 'IBM Plex Sans', sans-serif; font-size: 14px; font-weight: 700;
+    cursor: pointer; transition: all .2s;
+  }
+  .btn-submit:hover { background: #f5d460; transform: translateY(-1px); }
+
+  .btn-secondary {
+    padding: 7px 13px; background: transparent; border: 1px solid var(--border); border-radius: 6px;
+    color: var(--muted); font-size: 12px; cursor: pointer;
+    font-family: 'IBM Plex Sans', sans-serif; transition: all .2s; white-space: nowrap;
+  }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+  .list-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .list-title { font-size: 10px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+
+  .pedido-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 6px; margin-bottom: 5px; font-size: 13px;
+  }
+  .pedido-item.vac-item { border-color: rgba(167,139,250,.3); background: rgba(167,139,250,.05); }
+  .pedido-item.aus-item { border-color: rgba(255,92,92,.25);  background: rgba(255,92,92,.04); }
+  .pedido-name { font-weight: 500; flex: 1; }
+  .pedido-meta { display: flex; gap: 6px; align-items: center; }
+
+  .badge {
+    padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 600;
+    font-family: 'IBM Plex Mono', monospace; letter-spacing: .5px; white-space: nowrap;
+  }
+  .badge-v   { background: rgba(232,197,71,.15);  color: var(--accent); }
+  .badge-O   { background: rgba(77,166,255,.15);  color: var(--col-O); }
+  .badge-T   { background: rgba(255,140,66,.15);  color: var(--col-T); }
+  .badge-vac { background: rgba(167,139,250,.2);  color: var(--col-vac); }
+  .badge-aus { background: rgba(255,92,92,.15);   color: var(--danger); }
+
+  .btn-del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px; padding: 0 3px; transition: color .2s; line-height: 1; }
+  .btn-del:hover { color: var(--danger); }
+
+  .msg-box {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px; font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+    line-height: 1.8; color: #a8b0c0; white-space: pre-wrap; min-height: 60px;
+  }
+
+  /* PENDIENTES */
+  .pend-box { background: rgba(255,140,66,.06); border: 1px solid rgba(255,140,66,.22); border-radius: 8px; padding: 14px 16px; margin-bottom: 16px; }
+  .pend-title { font-size: 10px; font-weight: 700; color: var(--warn); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 10px; }
+  .pend-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: rgba(255,140,66,.05); border: 1px solid rgba(255,140,66,.12); border-radius: 5px; margin-bottom: 4px; flex-wrap: wrap; }
+  .pend-nombre { flex: 1; font-size: 13px; font-weight: 500; min-width: 120px; }
+  .pend-row select { width: 155px; padding: 5px 8px; font-size: 12px; flex-shrink: 0; }
+  .btn-asign { padding: 5px 11px; background: var(--warn); color: #0f1117; border: none; border-radius: 5px; font-size: 11px; font-weight: 700; cursor: pointer; font-family: 'IBM Plex Sans', sans-serif; flex-shrink: 0; }
+  .btn-asign:hover { background: #ffaa60; }
+
+  /* LOGIN */
+  .login-wrap { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 56px); }
+  .login-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 36px 32px; width: 100%; max-width: 360px; text-align: center; }
+  .login-icon { font-size: 32px; margin-bottom: 12px; }
+  .login-title { font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 24px; }
+  .login-error { font-size: 12px; color: var(--danger); margin-top: 10px; min-height: 16px; }
+  .btn-logout { padding: 5px 12px; background: transparent; border: 1px solid var(--border); border-radius: 6px; color: var(--muted); font-size: 11px; cursor: pointer; font-family: 'IBM Plex Sans', sans-serif; transition: all .2s; }
+  .btn-logout:hover { border-color: var(--danger); color: var(--danger); }
+
+  /* GESTIÓN SUB-TABS */
+  .gtabs { display: flex; gap: 4px; margin-bottom: 20px; flex-wrap: wrap; }
+  .gtab { padding: 8px 14px; border-radius: 7px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; font-weight: 500; cursor: pointer; transition: all .2s; }
+  .gtab.active { background: var(--border); color: var(--text); border-color: transparent; }
+  .gtab:hover { background: var(--border); }
+  .gsub { display: none; }
+  .gsub.active { display: block; }
+
+  /* NÓMINA */
+  .nomina-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media(max-width:560px){ .nomina-grid { grid-template-columns: 1fr; } }
+  .nomina-sector { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+  .nomina-sector-title { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 14px; }
+  .nomina-sector-title.t-O { color: var(--col-O); }
+  .nomina-sector-title.t-T { color: var(--col-T); }
+  .nomina-sector-title.t-C { color: var(--col-vac); }
+  .nomina-add { display: flex; gap: 8px; margin-bottom: 12px; }
+  .nomina-add input { flex: 1; padding: 9px 12px; font-size: 13px; }
+  .btn-add { padding: 9px 14px; background: var(--success); color: #0f1117; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; flex-shrink: 0; transition: background .2s; }
+  .btn-add:hover { background: #6bdc8a; }
+  .nomina-list { max-height: 260px; overflow-y: auto; }
+  .nomina-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: 5px; font-size: 13px; margin-bottom: 3px; background: var(--bg); border: 1px solid var(--border); }
+  .nomina-item:hover { border-color: rgba(255,92,92,.3); }
+  .nomina-count { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--muted); margin-top: 8px; }
+
+  /* VACACIONES */
+  .vac-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 5px; font-size: 13px; flex-wrap: wrap; }
+  .vac-nombre { font-weight: 500; flex: 1; min-width: 150px; }
+  .vac-fechas { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--col-vac); }
+  .vac-sec    { font-size: 11px; color: var(--muted); }
+
+  /* CONTROL */
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+  .stat-box { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+  .stat-n { font-family: 'IBM Plex Mono', monospace; font-size: 28px; font-weight: 600; line-height: 1; margin-bottom: 5px; }
+  .stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 9px 12px; font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--border); }
+  td { padding: 9px 12px; border-bottom: 1px solid rgba(42,45,58,.5); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,.015); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+  .dot-o { background: var(--col-T); } .dot-c { background: var(--col-O); }
+
+  .resumen-box { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 8px; padding: 14px 18px; margin-top: 14px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; line-height: 2; }
+
+  .toast { position: fixed; bottom: 20px; right: 20px; padding: 10px 18px; border-radius: 8px; font-weight: 700; font-size: 13px; transform: translateY(60px); opacity: 0; transition: all .3s; z-index: 999; color: #0f1117; }
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  @media(max-width:580px){
+    header { padding: 8px 10px; flex-wrap: wrap; height: auto; gap: 5px; }
+    .page { padding: 16px 12px; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+    .nav-tab { font-size: 11px; padding: 6px 9px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">UTE <span>// </span>VIANDAS</div>
+  <nav class="nav-tabs">
+    <button class="nav-tab active" data-tab="obras"   onclick="goTab('obras')">Ingeniería & Obras</button>
+    <button class="nav-tab"        data-tab="central" onclick="goTab('central')">UTE Central</button>
+    <button class="nav-tab"        data-tab="gestion" onclick="goTab('gestion')">🔒 Gestión</button>
+  </nav>
+</header>
+
+<!-- ══ OBRAS ══ -->
+<div class="page active" id="page-obras">
+  <div class="date-banner">
+    <div><div class="date-label">Pedido del día</div><div class="date-value" id="date-obras"></div></div>
+    <div style="font-size:11px;color:var(--muted);text-align:right">UTE Ingeniería<br>y Construcciones</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Cargar pedido</div>
+    <div class="field">
+      <label>1 — Comedor</label>
+      <div class="sector-toggle">
+        <button class="sector-btn" id="btn-O" onclick="setSector('O')">O — Oficina</button>
+        <button class="sector-btn" id="btn-T" onclick="setSector('T')">T — Taller</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>2 — Nombre y Apellido</label>
+      <select id="obras-nombre" disabled><option value="">— Primero elegí el comedor —</option></select>
+    </div>
+    <div class="field">
+      <label>3 — Vianda</label>
+      <select id="obras-vianda"><option value="">— Seleccioná tu vianda —</option></select>
+    </div>
+    <button class="btn-submit" onclick="submitObras()">✓ Enviar pedido</button>
+  </div>
+</div>
+
+<!-- ══ CENTRAL ══ -->
+<div class="page" id="page-central">
+  <div class="date-banner">
+    <div><div class="date-label">Pedido del día</div><div class="date-value" id="date-central"></div></div>
+    <div style="font-size:11px;color:var(--muted);text-align:right">UTE Central</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Cargar pedido</div>
+    <div class="field">
+      <label>Nombre y Apellido</label>
+      <select id="central-nombre"><option value="">— Seleccioná tu nombre —</option></select>
+    </div>
+    <div class="field">
+      <label>Vianda</label>
+      <select id="central-vianda"><option value="">— Seleccioná tu vianda —</option></select>
+    </div>
+    <button class="btn-submit" onclick="submitCentral()">✓ Enviar pedido</button>
+  </div>
+</div>
+
+<!-- ══ GESTIÓN ══ -->
+<div class="page" id="page-gestion">
+
+  <!-- LOGIN -->
+  <div class="login-wrap" id="gestion-login">
+    <div class="login-card">
+      <div class="login-icon">🔐</div>
+      <div class="login-title">Acceso Encargados</div>
+      <div class="field">
+        <input type="password" id="pwd-input" placeholder="Contraseña" onkeydown="if(event.key==='Enter')checkPwd()">
+      </div>
+      <button class="btn-submit" onclick="checkPwd()">Ingresar</button>
+      <div class="login-error" id="pwd-error"></div>
+    </div>
+  </div>
+
+  <!-- PANEL -->
+  <div id="gestion-panel" style="display:none">
+    <div class="date-banner" style="border-left-color:var(--accent)">
+      <div><div class="date-label">Panel de gestión</div><div class="date-value" id="date-gestion"></div></div>
+      <button class="btn-logout" onclick="logout()">Cerrar sesión</button>
+    </div>
+
+    <div class="gtabs">
+      <button class="gtab active" data-gt="pendientes" onclick="goGtab('pendientes')">⏳ Pendientes</button>
+      <button class="gtab" data-gt="mensajes"          onclick="goGtab('mensajes')">📋 Mensajes</button>
+      <button class="gtab" data-gt="nomina"            onclick="goGtab('nomina')">👥 Nómina</button>
+      <button class="gtab" data-gt="vac"               onclick="goGtab('vac')">🏖 Vacaciones</button>
+      <button class="gtab" data-gt="control"           onclick="goGtab('control')">📊 Control</button>
+    </div>
+
+    <!-- PENDIENTES -->
+    <div class="gsub active" id="gsub-pendientes">
+      <div style="margin-bottom:20px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px;font-weight:600">Ingeniería & Obras</div>
+        <div id="g-obras-pend"></div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px;font-weight:600">UTE Central</div>
+        <div id="g-central-pend"></div>
+      </div>
+    </div>
+
+    <!-- MENSAJES -->
+    <div class="gsub" id="gsub-mensajes">
+      <div class="card">
+        <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+          Ingeniería & Obras <button class="btn-secondary" onclick="copyMsg('obras')">📋 Copiar</button>
+        </div>
+        <div class="msg-box" id="g-obras-msg">—</div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+          UTE Central <button class="btn-secondary" onclick="copyMsg('central')">📋 Copiar</button>
+        </div>
+        <div class="msg-box" id="g-central-msg">—</div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+          Todos los pedidos — Obras <button class="btn-secondary" onclick="imprimirLista('obras')">🖨 Imprimir</button>
+        </div>
+        <div id="g-obras-lista"></div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+          Todos los pedidos — Central <button class="btn-secondary" onclick="imprimirLista('central')">🖨 Imprimir</button>
+        </div>
+        <div id="g-central-lista"></div>
+      </div>
+    </div>
+
+    <!-- NÓMINA -->
+    <div class="gsub" id="gsub-nomina">
+      <div style="background:rgba(232,197,71,.06);border:1px solid rgba(232,197,71,.2);border-radius:8px;padding:12px 16px;margin-bottom:18px;font-size:12px;color:var(--muted);line-height:1.6">
+        Los cambios en la nómina se reflejan en los desplegables de pedidos inmediatamente.<br>
+        <strong style="color:var(--accent)">Formato:</strong> ingresá el nombre en MAYÚSCULAS como aparece en la lista (ej: GARCIA EDUARDO).
+      </div>
+      <div class="nomina-grid">
+        <!-- Oficina -->
+        <div class="nomina-sector">
+          <div class="nomina-sector-title t-O">🏢 Ingeniería — Oficina</div>
+          <div class="nomina-add">
+            <input type="text" id="add-obras-O" placeholder="APELLIDO NOMBRE" onkeydown="if(event.key==='Enter')addNomina('obras-O')">
+            <button class="btn-add" onclick="addNomina('obras-O')">+</button>
+          </div>
+          <div class="nomina-list" id="nl-obras-O"></div>
+          <div class="nomina-count" id="nc-obras-O"></div>
+        </div>
+        <!-- Taller -->
+        <div class="nomina-sector">
+          <div class="nomina-sector-title t-T">🔧 Ingeniería — Taller</div>
+          <div class="nomina-add">
+            <input type="text" id="add-obras-T" placeholder="APELLIDO NOMBRE" onkeydown="if(event.key==='Enter')addNomina('obras-T')">
+            <button class="btn-add" onclick="addNomina('obras-T')">+</button>
+          </div>
+          <div class="nomina-list" id="nl-obras-T"></div>
+          <div class="nomina-count" id="nc-obras-T"></div>
+        </div>
+        <!-- Central (full width) -->
+        <div class="nomina-sector" style="grid-column:1/-1">
+          <div class="nomina-sector-title t-C">🏛 UTE Central</div>
+          <div class="nomina-add">
+            <input type="text" id="add-central" placeholder="APELLIDO NOMBRE" onkeydown="if(event.key==='Enter')addNomina('central')">
+            <button class="btn-add" onclick="addNomina('central')">+</button>
+          </div>
+          <div class="nomina-list" id="nl-central" style="max-height:220px"></div>
+          <div class="nomina-count" id="nc-central"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VACACIONES -->
+    <div class="gsub" id="gsub-vac">
+      <div class="card">
+        <div class="card-title">Registrar período</div>
+        <div class="field">
+          <label>Sector</label>
+          <select id="vac-sector" onchange="updateVacNombres()">
+            <option value="">— Elegí el sector —</option>
+            <option value="obras-O">Ingeniería — Oficina</option>
+            <option value="obras-T">Ingeniería — Taller</option>
+            <option value="central">UTE Central</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Nombre y Apellido</label>
+          <select id="vac-nombre" disabled><option value="">— Primero elegí el sector —</option></select>
+        </div>
+        <div style="display:flex;gap:14px">
+          <div class="field" style="flex:1"><label>Desde</label><input type="date" id="vac-desde"></div>
+          <div class="field" style="flex:1"><label>Hasta</label><input type="date" id="vac-hasta"></div>
+        </div>
+        <button class="btn-submit" style="background:var(--col-vac)" onclick="submitVac()">✓ Registrar vacaciones</button>
+      </div>
+      <div class="list-header"><span class="list-title">Períodos registrados</span></div>
+      <div id="vac-lista"></div>
+    </div>
+
+    <!-- CONTROL -->
+    <div class="gsub" id="gsub-control">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:10px;flex-wrap:wrap">
+        <select id="ctrl-sector" onchange="renderControl()" style="flex:1;min-width:160px">
+          <option value="todos">Todos los sectores</option>
+          <option value="obras">Ingeniería & Obras</option>
+          <option value="central">UTE Central</option>
+        </select>
+        <div style="display:flex;gap:8px">
+          <button class="btn-secondary" onclick="toggleCargaManual()" id="btn-carga-manual">+ Carga manual</button>
+          <button class="btn-secondary" onclick="exportControl()">↓ CSV</button>
+        </div>
+      </div>
+
+      <!-- PANEL CARGA MANUAL -->
+      <div id="carga-manual-panel" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:18px">
+        <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:16px">Carga manual de días anteriores</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+          <div>
+            <label>Fecha</label>
+            <input type="date" id="cm-fecha">
+          </div>
+          <div>
+            <label>Sector</label>
+            <select id="cm-sector">
+              <option value="">— Elegí —</option>
+              <option value="obras">Ingeniería & Obras</option>
+              <option value="central">UTE Central</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
+          <div>
+            <label>Menús</label>
+            <input type="text" id="cm-menus" placeholder="0" style="text-align:center">
+          </div>
+          <div>
+            <label>Ensaladas</label>
+            <input type="text" id="cm-ensaladas" placeholder="0" style="text-align:center">
+          </div>
+          <div>
+            <label>Comedor (Obras)</label>
+            <select id="cm-comedor">
+              <option value="mixto">Mixto (O+T)</option>
+              <option value="O">Solo Oficina</option>
+              <option value="T">Solo Taller</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn-submit" style="font-size:13px;padding:11px" onclick="guardarCargaManual()">✓ Guardar día</button>
+      </div>
+
+      <div class="stats-grid" id="stats-grid"></div>
+      <div class="card">
+        <div class="card-title">Detalle por día</div>
+        <table>
+          <thead><tr><th>Fecha</th><th>Sector</th><th>Comensales</th><th>Menús</th><th>Ensaladas</th><th></th></tr></thead>
+          <tbody id="ctrl-tbody"></tbody>
+        </table>
+      </div>
+      <div class="resumen-box" id="resumen-box"></div>
+    </div>
+
+  </div><!-- /panel -->
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── FIREBASE CONFIG ───────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyA__bmN_9AwDwtsOYSYTAX2qHL1MBNhQ3g",
+  authDomain: "viandas-ute.firebaseapp.com",
+  databaseURL: "https://viandas-ute-default-rtdb.firebaseio.com",
+  projectId: "viandas-ute",
+  storageBucket: "viandas-ute.firebasestorage.app",
+  messagingSenderId: "453664977783",
+  appId: "1:453664977783:web:a8bf4192339c48a50d6772"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ── NÓMINA BASE ────────────────────────────────────────────
+const BASE_OBRAS_O = [
+  "ARIAS DAMIAN","AUDAY SEBASTIAN","BASCHIERA GUILLERMO","BONIFAZI FABIAN",
+  "CASTILLO RICARDO","DAMIANI DIEGO","FERNANDEZ POLIDORO SANTIAGO",
+  "JEVA MARTIN","MACCHIA FERNANDO","REYERO GABRIEL",
+  "RUIZ HERNAN","TORRE STEFANO","TORRES LISANDRO"
+];
+const BASE_OBRAS_T = ["CAPPARUCCINI MAURO","CASAS JULIAN","MADRIL GIULIANO"];
+const BASE_CENTRAL = [
+  "ANTONELLI JORGE","CRESPO JUAN","DETZEL PEDRO","DIERNA FLORENCIA",
+  "GARCIA EDUARDO","GHIETTO FRANCO","LORENZETTI JULIAN","MAGARINE GASTON",
+  "MAZZELLA MARCELO","MOLINS ELIANNA","NADOR GUSTAVO","PISTONE ROBERTO",
+  "PONTECORVO FRANCISCO","PREZIOSO CAMILA"
+];
+
+const VIANDAS = [
+  { c:"M",   l:"Menú",               t:"menu" },
+  { c:"ME",  l:"Menú con Ensalada",  t:"menu" },
+  { c:"T",   l:"Tarta",              t:"menu" },
+  { c:"P",   l:"Pizza",              t:"menu" },
+  { c:"BE",  l:"Bife con Ensalada",  t:"menu" },
+  { c:"PE",  l:"Pollo con Ensalada", t:"menu" },
+  { c:"EMP", l:"Empanadas",          t:"menu" },
+  { c:"O",   l:"Opción",             t:"menu" },
+  { c:"EN",  l:"Ensalada (sola)",    t:"ensalada" },
+  { c:"AUS", l:"Ausente",            t:"ausente" },
+];
+
+const PWD = "UTEBB";
+
+// ── STATE EN MEMORIA (sincronizado con Firebase) ───────────
+// El estado vive acá, Firebase lo actualiza via listeners en tiempo real
+let STATE = {};   // { "2026-03-12": { obras: [...], central: [...] }, _vac: [...], _nomina: {...} }
+
+function todayKey(){ return new Date().toISOString().slice(0,10); }
+
+// ── FIREBASE LISTENERS ────────────────────────────────────
+// Escucha TODO el árbol una sola vez y luego cambios en tiempo real
+function startListeners() {
+  db.ref('/').on('value', snap => {
+    STATE = snap.val() || {};
+    // Re-render everything that's visible
+    rebuildSelects();
+    if (sectorObras) setSector(sectorObras);
+    if (authed) refreshGestion();
+  });
+}
+
+// ── ESCRITURA A FIREBASE ──────────────────────────────────
+// Todas las escrituras van directo a Firebase; el listener las refleja a todos
+function fbSet(path, value) {
+  return db.ref(path).set(value);
+}
+function fbUpdate(path, value) {
+  return db.ref(path).update(value);
+}
+function fbRemove(path) {
+  return db.ref(path).remove();
+}
+
+// ── NÓMINA ────────────────────────────────────────────────
+function nomina(key) {
+  const custom = STATE._nomina?.[key];
+  if (custom) return [...custom].sort();
+  if (key === 'obras-O') return [...BASE_OBRAS_O].sort();
+  if (key === 'obras-T') return [...BASE_OBRAS_T].sort();
+  if (key === 'central') return [...BASE_CENTRAL].sort();
+  return [];
+}
+function setNomina(key, arr) {
+  return fbSet(`/_nomina/${key}`, arr.sort());
+}
+
+// ── PEDIDOS ───────────────────────────────────────────────
+function getPedidos(sec) {
+  return STATE[todayKey()]?.[sec] || [];
+}
+function addPedido(sec, p) {
+  const k = todayKey();
+  const pedidos = [...getPedidos(sec)];
+  const i = pedidos.findIndex(x => x.nombre === p.nombre);
+  if (i >= 0) pedidos[i] = p; else pedidos.push(p);
+  return fbSet(`/${k}/${sec}`, pedidos);
+}
+function removePedido(sec, nom) {
+  const k = todayKey();
+  const pedidos = getPedidos(sec).filter(p => p.nombre !== nom);
+  return fbSet(`/${k}/${sec}`, pedidos.length ? pedidos : null);
+}
+
+// ── VACACIONES ────────────────────────────────────────────
+function getVacs() { return STATE._vac || []; }
+function setVacs(v) { return fbSet('/_vac', v.length ? v : null); }
+function isVac(nom, sec, fecha) {
+  return getVacs().some(v => v.nombre===nom && v.sector===sec && fecha>=v.desde && fecha<=v.hasta);
+}
+function autoVac() {
+  const hoy = todayKey();
+  const promises = [];
+  [...nomina('obras-O').map(n=>({n,c:'O',s:'obras'})),
+   ...nomina('obras-T').map(n=>({n,c:'T',s:'obras'})),
+   ...nomina('central').map(n=>({n,c:null,s:'central'}))
+  ].forEach(({n,c,s}) => {
+    if (isVac(n,s,hoy)) promises.push(addPedido(s,{nombre:n,vianda:'VAC',sector:c}));
+  });
+  return Promise.all(promises);
+}
+
+// ── AUTH ───────────────────────────────────────────────────
+let authed = false;
+function checkPwd() {
+  if (document.getElementById('pwd-input').value === PWD) {
+    authed = true;
+    document.getElementById('gestion-login').style.display = 'none';
+    document.getElementById('gestion-panel').style.display = 'block';
+    document.getElementById('pwd-input').value = '';
+    document.getElementById('pwd-error').textContent = '';
+    refreshGestion();
+  } else {
+    document.getElementById('pwd-error').textContent = '⚠️ Contraseña incorrecta';
+    document.getElementById('pwd-input').value = '';
+  }
+}
+function logout() {
+  authed = false;
+  document.getElementById('gestion-login').style.display = 'flex';
+  document.getElementById('gestion-panel').style.display = 'none';
+}
+
+// ── INIT ───────────────────────────────────────────────────
+let sectorObras = null;
+
+function init() {
+  const fmt = {weekday:'long',day:'numeric',month:'long',year:'numeric'};
+  const hoyStr = new Date().toLocaleDateString('es-AR',fmt).replace(/^\w/,c=>c.toUpperCase());
+  ['date-obras','date-central','date-gestion'].forEach(id => {
+    const el=document.getElementById(id); if(el) el.textContent=hoyStr;
+  });
+  fillViandas('obras-vianda');
+  fillViandas('central-vianda');
+  const hoy=todayKey();
+  document.getElementById('vac-desde').value=hoy;
+  document.getElementById('vac-hasta').value=hoy;
+
+  // Mostrar spinner mientras conecta
+  showConnecting(true);
+  startListeners();
+  // autoVac después de primer carga (el listener ya llama rebuildSelects)
+  db.ref('/').once('value').then(() => {
+    showConnecting(false);
+    autoVac();
+  });
+}
+
+function showConnecting(on) {
+  let el = document.getElementById('connecting-banner');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'connecting-banner';
+    el.style.cssText = 'position:fixed;top:56px;left:0;right:0;z-index:200;background:#1a1d27;border-bottom:1px solid #2a2d3a;padding:10px;text-align:center;font-size:12px;color:#6b7080;font-family:IBM Plex Mono,monospace;letter-spacing:1px';
+    el.textContent = '⟳ Conectando con la base de datos...';
+    document.body.appendChild(el);
+  }
+  el.style.display = on ? 'block' : 'none';
+}
+
+// ── NÓMINA DISPONIBLE (sin vacaciones hoy) ────────────────
+function nominaDisponible(key) {
+  const hoy = todayKey();
+  const sec = key.startsWith('obras') ? 'obras' : 'central';
+  return nomina(key).filter(n => !isVac(n, sec, hoy));
+}
+
+function fillNombres(id, arr) {
+  const sel=document.getElementById(id);
+  if (!sel) return;
+  const prev = sel.value;
+  sel.innerHTML='<option value="">— Seleccioná tu nombre —</option>';
+  arr.forEach(n=>{ const o=document.createElement('option'); o.value=n; o.textContent=n; sel.appendChild(o); });
+  if (prev && arr.includes(prev)) sel.value = prev;
+}
+function fillViandas(id) {
+  const sel=document.getElementById(id);
+  sel.innerHTML='<option value="">— Seleccioná tu vianda —</option>';
+  VIANDAS.forEach(v=>{ const o=document.createElement('option'); o.value=v.c; o.textContent=`${v.c} — ${v.l}`; sel.appendChild(o); });
+}
+function rebuildSelects() {
+  fillNombres('central-nombre', nominaDisponible('central'));
+}
+
+// ── SECTOR ─────────────────────────────────────────────────
+function setSector(s) {
+  sectorObras = s;
+  document.getElementById('btn-O').className='sector-btn'+(s==='O'?' sel-O':'');
+  document.getElementById('btn-T').className='sector-btn'+(s==='T'?' sel-T':'');
+  const sel=document.getElementById('obras-nombre');
+  sel.disabled=false;
+  fillNombres('obras-nombre', nominaDisponible(s==='O'?'obras-O':'obras-T'));
+}
+
+// ── SUBMIT ─────────────────────────────────────────────────
+function submitObras() {
+  const nom=document.getElementById('obras-nombre').value;
+  const via=document.getElementById('obras-vianda').value;
+  if(!sectorObras) { toast('⚠️ Elegí Oficina o Taller',true); return; }
+  if(!nom)         { toast('⚠️ Elegí tu nombre',true); return; }
+  if(!via)         { toast('⚠️ Elegí tu vianda',true); return; }
+  addPedido('obras',{nombre:nom,vianda:via,sector:sectorObras})
+    .then(()=>toast('✓ Pedido cargado'))
+    .catch(()=>toast('⚠️ Error al guardar',true));
+  document.getElementById('obras-nombre').value='';
+  document.getElementById('obras-vianda').value='';
+}
+function submitCentral() {
+  const nom=document.getElementById('central-nombre').value;
+  const via=document.getElementById('central-vianda').value;
+  if(!nom) { toast('⚠️ Elegí tu nombre',true); return; }
+  if(!via) { toast('⚠️ Elegí tu vianda',true); return; }
+  addPedido('central',{nombre:nom,vianda:via})
+    .then(()=>toast('✓ Pedido cargado'))
+    .catch(()=>toast('⚠️ Error al guardar',true));
+  document.getElementById('central-nombre').value='';
+  document.getElementById('central-vianda').value='';
+}
+
+// ── HELPERS ────────────────────────────────────────────────
+function vLabel(c){ if(c==='VAC')return'Vacaciones'; return VIANDAS.find(v=>v.c===c)?.l||c; }
+function safeN(n){ return n.replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+function realN(n){ return n.replace(/\\'/g,"'"); }
+function buildBadges(p,sec){
+  const isV=p.vianda==='VAC',isA=p.vianda==='AUS';
+  const bv=isV?'<span class="badge badge-vac">VACACIONES</span>':isA?'<span class="badge badge-aus">AUSENTE</span>':`<span class="badge badge-v">${p.vianda}</span>`;
+  const bs=sec==='obras'?`<span class="badge badge-${p.sector}">${p.sector}</span>`:'';
+  return bv+bs;
+}
+
+// ── GESTIÓN REFRESH ────────────────────────────────────────
+function refreshGestion() {
+  renderPend('obras');
+  renderPend('central');
+  renderMsgs();
+  renderListasGestion();
+  renderNomina();
+  renderVac();
+  renderControl();
+}
+
+// PENDIENTES
+function renderPend(sec) {
+  const wrap=document.getElementById(`g-${sec}-pend`);
+  const pedNoms=getPedidos(sec).map(p=>p.nombre);
+  const todos=sec==='obras'?[...nomina('obras-O'),...nomina('obras-T')]:nomina('central');
+  const pend=todos.filter(n=>!pedNoms.includes(n));
+  const opts=VIANDAS.map(v=>`<option value="${v.c}">${v.c} — ${v.l}</option>`).join('');
+  if(!pend.length){ wrap.innerHTML='<div style="color:var(--success);font-size:13px;padding:10px 0">✓ Todos cargaron su pedido.</div>'; return; }
+  const rows=pend.map(n=>{
+    const com=sec==='obras'?(nomina('obras-O').includes(n)?'O':'T'):null;
+    const sn=safeN(n);
+    const fn=sec==='obras'?`asignObras('${sn}','${com}')`:`asignCentral('${sn}')`;
+    const bdg=com?`<span class="badge badge-${com}" style="margin-left:5px">${com}</span>`:'';
+    return `<div class="pend-row"><span class="pend-nombre">${n}${bdg}</span><select id="ps-${sec}-${sn}"><option value="">Elegir...</option>${opts}</select><button class="btn-asign" onclick="${fn}">Asignar</button></div>`;
+  }).join('');
+  wrap.innerHTML=`<div class="pend-box"><div class="pend-title">⏳ Sin confirmar (${pend.length})</div>${rows}</div>`;
+}
+function asignObras(sn,com){
+  const n=realN(sn),sel=document.getElementById(`ps-obras-${sn}`);
+  if(!sel?.value){toast('⚠️ Elegí una opción',true);return;}
+  addPedido('obras',{nombre:n,vianda:sel.value,sector:com}).then(()=>toast(`✓ Asignado: ${n}`));
+}
+function asignCentral(sn){
+  const n=realN(sn),sel=document.getElementById(`ps-central-${sn}`);
+  if(!sel?.value){toast('⚠️ Elegí una opción',true);return;}
+  addPedido('central',{nombre:n,vianda:sel.value}).then(()=>toast(`✓ Asignado: ${n}`));
+}
+
+// MENSAJES
+function buildMsg(sec){
+  const act=getPedidos(sec).filter(p=>p.vianda!=='VAC'&&p.vianda!=='AUS'&&!p._manual);
+  if(!act.length)return'— sin pedidos —';
+  const hoy=new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'}).replace(/^\w/,c=>c.toUpperCase());
+  const grp=arr=>{const g={};arr.forEach(p=>{g[p.vianda]=(g[p.vianda]||0)+1;});return g;};
+  const fmt=g=>Object.entries(g).map(([k,n])=>`  ${n}x ${k} — ${vLabel(k)}`).join('\n');
+  if(sec==='obras'){
+    const of=act.filter(p=>p.sector==='O'),ta=act.filter(p=>p.sector==='T');
+    let m=`📋 PEDIDO UTE INGENIERÍA & CONSTRUCCIONES\n${hoy}\n\n`;
+    if(of.length)m+=`🏢 OFICINA (${of.length})\n${fmt(grp(of))}\n\n`;
+    if(ta.length)m+=`🔧 TALLER (${ta.length})\n${fmt(grp(ta))}\n`;
+    return m.trim();
+  }
+  return `📋 PEDIDO UTE CENTRAL\n${hoy}\n\nTotal: ${act.length} viandas\n${fmt(grp(act))}`;
+}
+function renderMsgs(){ document.getElementById('g-obras-msg').textContent=buildMsg('obras'); document.getElementById('g-central-msg').textContent=buildMsg('central'); }
+function copyMsg(sec){
+  const txt = document.getElementById(`g-${sec}-msg`).textContent;
+  try {
+    navigator.clipboard.writeText(txt).then(()=>toast('📋 Copiado al portapapeles')).catch(()=>copyFallback(txt));
+  } catch(e) { copyFallback(txt); }
+}
+function copyFallback(txt){
+  const ta=document.createElement('textarea');
+  ta.value=txt; ta.style.cssText='position:fixed;top:-9999px;left:-9999px;opacity:0';
+  document.body.appendChild(ta); ta.focus(); ta.select();
+  try { document.execCommand('copy'); toast('📋 Copiado al portapapeles'); }
+  catch(e){ toast('⚠️ No se pudo copiar',true); }
+  document.body.removeChild(ta);
+}
+
+// LISTAS GESTIÓN
+function renderListasGestion(){
+  ['obras','central'].forEach(sec=>{
+    const pedidos=getPedidos(sec).filter(p=>!p._manual), el=document.getElementById(`g-${sec}-lista`);
+    if(!pedidos.length){el.innerHTML='<div style="color:var(--muted);font-size:13px">Sin pedidos.</div>';return;}
+    const sorted=[...pedidos].sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
+    el.innerHTML=sorted.map(p=>{
+      const isV=p.vianda==='VAC',isA=p.vianda==='AUS',sn=safeN(p.nombre);
+      const fn=`gDel('${sec}','${sn}')`;
+      return `<div class="pedido-item ${isV?'vac-item':''} ${isA?'aus-item':''}">
+        <input type="checkbox" style="margin-right:10px;width:16px;height:16px;accent-color:var(--success);cursor:pointer;flex-shrink:0">
+        <span class="pedido-name">${p.nombre}</span>
+        <div class="pedido-meta">${buildBadges(p,sec)}<button class="btn-del" onclick="${fn}">×</button></div>
+      </div>`;
+    }).join('');
+  });
+}
+function gDel(sec,sn){ removePedido(sec,realN(sn)); }
+
+function imprimirLista(sec){
+  const pedidos=getPedidos(sec).filter(p=>!p._manual);
+  if(!pedidos.length){toast('Sin pedidos para imprimir',true);return;}
+  const sorted=[...pedidos].sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
+  const hoy=new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).replace(/^\w/,c=>c.toUpperCase());
+  const secLabel=sec==='obras'?'UTE Ingeniería y Construcciones':'UTE Central';
+  const filas=sorted.map(p=>{
+    const isV=p.vianda==='VAC',isA=p.vianda==='AUS';
+    const viaStr=isV?'VACACIONES':isA?'AUSENTE':`${p.vianda} — ${vLabel(p.vianda)}`;
+    const com=sec==='obras'?`<td style="padding:8px 12px;border-bottom:1px solid #e0e0e0;text-align:center">${p.sector}</td>`:'';
+    return `<tr>
+      <td style="padding:8px 12px;border-bottom:1px solid #e0e0e0">${p.nombre}</td>
+      ${com}
+      <td style="padding:8px 12px;border-bottom:1px solid #e0e0e0">${viaStr}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #e0e0e0;text-align:center">
+        <span style="display:inline-block;width:18px;height:18px;border:2px solid #333;border-radius:3px"></span>
+      </td>
+    </tr>`;
+  }).join('');
+  const headerCom=sec==='obras'?'<th style="padding:8px 12px;background:#f5f5f5;border-bottom:2px solid #333;text-align:center">Comedor</th>':'';
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <title>Pedidos ${secLabel} — ${hoy}</title>
+    <style>body{font-family:Arial,sans-serif;padding:24px;color:#111}h2{margin-bottom:4px;font-size:18px}.fecha{color:#555;font-size:13px;margin-bottom:20px}table{width:100%;border-collapse:collapse;font-size:14px}th{padding:8px 12px;background:#f5f5f5;border-bottom:2px solid #333;text-align:left}tr:last-child td{border-bottom:none}@media print{body{padding:12px}}</style>
+  </head><body>
+    <h2>${secLabel}</h2><div class="fecha">${hoy}</div>
+    <table><thead><tr><th>Nombre y Apellido</th>${headerCom}<th>Vianda</th><th style="text-align:center;width:60px">✓</th></tr></thead>
+    <tbody>${filas}</tbody></table>
+  </body></html>`;
+  const w=window.open('','_blank','width=700,height=600');
+  w.document.write(html); w.document.close(); w.focus();
+  setTimeout(()=>w.print(),400);
+}
+
+// ── NÓMINA GESTIÓN ────────────────────────────────────────
+function addNomina(key) {
+  const inputId = key==='central'?'add-central':`add-obras-${key.split('-')[1]}`;
+  const input = document.getElementById(inputId);
+  const val = input.value.trim().toUpperCase();
+  if (!val) { toast('⚠️ Ingresá un nombre',true); return; }
+  const list = nomina(key);
+  if (list.includes(val)) { toast('⚠️ Ya existe en la lista',true); return; }
+  list.push(val);
+  setNomina(key, list).then(()=>{ input.value=''; toast(`✓ Agregado: ${val}`); });
+}
+function delNomina(key, nombre) {
+  const list = nomina(key).filter(n=>n!==nombre);
+  setNomina(key, list).then(()=>toast(`Eliminado: ${nombre}`));
+}
+function renderNomina() {
+  [['obras-O','nl-obras-O','nc-obras-O'], ['obras-T','nl-obras-T','nc-obras-T'], ['central','nl-central','nc-central']].forEach(([key,listId,countId])=>{
+    const list = nomina(key);
+    const el = document.getElementById(listId);
+    el.innerHTML = list.map(n=>{
+      const sn=safeN(n);
+      return `<div class="nomina-item"><span>${n}</span><button class="btn-del" onclick="delNomina('${key}','${sn}')">×</button></div>`;
+    }).join('') || '<div style="color:var(--muted);font-size:12px;padding:6px 0">Sin personas en esta lista.</div>';
+    document.getElementById(countId).textContent = `${list.length} persona${list.length!==1?'s':''}`;
+  });
+}
+
+// ── VACACIONES ────────────────────────────────────────────
+function updateVacNombres(){
+  const v=document.getElementById('vac-sector').value, sel=document.getElementById('vac-nombre');
+  sel.disabled=!v;
+  let arr=[];
+  if(v==='obras-O')arr=nomina('obras-O'); else if(v==='obras-T')arr=nomina('obras-T'); else if(v==='central')arr=nomina('central');
+  sel.innerHTML='<option value="">— Seleccioná —</option>';
+  arr.forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;sel.appendChild(o);});
+}
+function submitVac(){
+  const sv=document.getElementById('vac-sector').value, nom=document.getElementById('vac-nombre').value;
+  const desde=document.getElementById('vac-desde').value, hasta=document.getElementById('vac-hasta').value;
+  if(!sv){toast('⚠️ Elegí el sector',true);return;} if(!nom){toast('⚠️ Elegí el nombre',true);return;}
+  if(!desde||!hasta){toast('⚠️ Completá las fechas',true);return;} if(hasta<desde){toast('⚠️ Hasta ≥ desde',true);return;}
+  const sec=sv.startsWith('obras')?'obras':'central', com=sv==='obras-O'?'O':sv==='obras-T'?'T':null;
+  const vacs=getVacs();
+  if(vacs.some(v=>v.nombre===nom&&v.desde===desde&&v.hasta===hasta)){toast('Ya existe ese período',true);return;}
+  vacs.push({nombre:nom,sector:sec,comedor:com,desde,hasta});
+  setVacs(vacs).then(()=>{
+    const hoy=todayKey();
+    if(hoy>=desde&&hoy<=hasta) addPedido(sec,{nombre:nom,vianda:'VAC',sector:com});
+    toast(`✓ Vacaciones: ${nom}`);
+  });
+}
+function renderVac(){
+  const vacs=getVacs(), el=document.getElementById('vac-lista');
+  if(!vacs.length){el.innerHTML='<div style="color:var(--muted);font-size:13px;padding:10px 0">No hay períodos registrados.</div>';return;}
+  el.innerHTML=[...vacs].sort((a,b)=>a.desde.localeCompare(b.desde)).map((v,i)=>{
+    const[,mD,dD]=v.desde.split('-'),[yH,mH,dH]=v.hasta.split('-');
+    const sl=v.sector==='central'?'UTE Central':`Ingeniería ${v.comedor}`;
+    return `<div class="vac-row"><span class="vac-nombre">${v.nombre}</span><span class="vac-fechas">${dD}/${mD} → ${dH}/${mH}/${yH}</span><span class="vac-sec">${sl}</span><button class="btn-del" onclick="delVac(${i})">×</button></div>`;
+  }).join('');
+}
+function delVac(i){
+  const v=getVacs(); v.splice(i,1);
+  setVacs(v).then(()=>{ rebuildSelects(); if(sectorObras)setSector(sectorObras); toast('Período eliminado'); });
+}
+
+// ── CONTROL ────────────────────────────────────────────────
+function toggleCargaManual(){
+  const p=document.getElementById('carga-manual-panel');
+  const btn=document.getElementById('btn-carga-manual');
+  const visible=p.style.display!=='none';
+  p.style.display=visible?'none':'block';
+  btn.textContent=visible?'+ Carga manual':'✕ Cerrar';
+  if(!visible){
+    const d=new Date(); d.setDate(d.getDate()-1);
+    document.getElementById('cm-fecha').value=d.toISOString().slice(0,10);
+  }
+}
+function guardarCargaManual(){
+  const fecha=document.getElementById('cm-fecha').value;
+  const sec=document.getElementById('cm-sector').value;
+  const menus=parseInt(document.getElementById('cm-menus').value)||0;
+  const ensaladas=parseInt(document.getElementById('cm-ensaladas').value)||0;
+  const comedor=document.getElementById('cm-comedor').value;
+  if(!fecha){toast('⚠️ Elegí una fecha',true);return;}
+  if(!sec){toast('⚠️ Elegí el sector',true);return;}
+  if(menus===0&&ensaladas===0){toast('⚠️ Ingresá al menos un menú o ensalada',true);return;}
+  if(fecha>todayKey()){toast('⚠️ No se pueden cargar fechas futuras',true);return;}
+
+  // Get existing non-manual entries for that date/sector
+  const existing = (STATE[fecha]?.[sec] || []).filter(p=>!p._manual);
+  const nuevos = [...existing];
+  for(let i=0;i<menus;i++){
+    nuevos.push({nombre:`_MANUAL_M_${i}`, vianda:'M', sector: sec==='obras'?(comedor==='mixto'?(i%2===0?'O':'T'):comedor):null, _manual:true});
+  }
+  for(let i=0;i<ensaladas;i++){
+    nuevos.push({nombre:`_MANUAL_EN_${i}`, vianda:'EN', sector: sec==='obras'?(comedor==='mixto'?(i%2===0?'O':'T'):comedor):null, _manual:true});
+  }
+  fbSet(`/${fecha}/${sec}`, nuevos).then(()=>{
+    toast(`✓ Guardado: ${fecha} — ${menus} menú(s), ${ensaladas} ensalada(s)`);
+    document.getElementById('cm-menus').value='';
+    document.getElementById('cm-ensaladas').value='';
+  });
+}
+function renderControl(){
+  const filtro=document.getElementById('ctrl-sector').value, rows=[];
+  Object.entries(STATE).forEach(([fecha,secs])=>{
+    if(fecha.startsWith('_'))return;
+    ['obras','central'].forEach(sec=>{
+      if(!secs[sec]?.length)return; if(filtro!=='todos'&&filtro!==sec)return;
+      const act=secs[sec].filter(p=>p.vianda!=='VAC'&&p.vianda!=='AUS');
+      const men=act.filter(p=>VIANDAS.find(v=>v.c===p.vianda)?.t==='menu');
+      const ens=act.filter(p=>p.vianda==='EN');
+      const hasManual=act.some(p=>p._manual);
+      if(act.length)rows.push({fecha,sec,total:act.length,menus:men.length,ens:ens.length,hasManual});
+    });
+  });
+  rows.sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  const tM=rows.reduce((a,r)=>a+r.menus,0),tE=rows.reduce((a,r)=>a+r.ens,0),tD=[...new Set(rows.map(r=>r.fecha))].length;
+  document.getElementById('stats-grid').innerHTML=`
+    <div class="stat-box"><div class="stat-n" style="color:var(--accent)">${tM}</div><div class="stat-label">Menús</div></div>
+    <div class="stat-box"><div class="stat-n" style="color:var(--success)">${tE}</div><div class="stat-label">Ensaladas</div></div>
+    <div class="stat-box"><div class="stat-n" style="color:var(--muted)">${tD}</div><div class="stat-label">Días</div></div>`;
+  const tb=document.getElementById('ctrl-tbody');
+  tb.innerHTML=!rows.length?'<tr><td colspan="6" style="color:var(--muted);text-align:center;padding:20px">Sin datos.</td></tr>'
+    :rows.map(r=>{
+      const[y,m,d]=r.fecha.split('-');
+      const delBtn=r.hasManual?`<button class="btn-del" title="Borrar carga manual" onclick="delManual('${r.fecha}','${r.sec}')">×</button>`:'';
+      const manualTag=r.hasManual?'<span style="font-size:9px;color:var(--muted);margin-left:4px">manual</span>':'';
+      return`<tr><td>${d}/${m}/${y}${manualTag}</td><td><span class="dot ${r.sec==='obras'?'dot-o':'dot-c'}"></span>${r.sec==='obras'?'Ingeniería':'Central'}</td><td>${r.total}</td><td>${r.menus}</td><td>${r.ens}</td><td>${delBtn}</td></tr>`;
+    }).join('');
+  const mes=new Date().toLocaleDateString('es-AR',{month:'long',year:'numeric'}).replace(/^\w/,c=>c.toUpperCase());
+  document.getElementById('resumen-box').innerHTML=`<strong>Resumen ${mes}</strong>\nMenús totales:     ${tM}\nEnsaladas totales: ${tE}\nTotal comidas:     ${tM+tE}`;
+}
+function exportControl(){
+  let csv='Fecha,Sector,Nombre,Vianda,Comedor\n';
+  Object.entries(STATE).forEach(([f,secs])=>{
+    if(f.startsWith('_'))return;
+    ['obras','central'].forEach(sec=>{
+      (secs[sec]||[]).forEach(p=>{
+        if(!p._manual) csv+=`${f},${sec},"${p.nombre}",${p.vianda},${p.sector||'—'}\n`;
+      });
+    });
+  });
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download=`viandas_${new Date().toISOString().slice(0,7)}.csv`;a.click();
+}
+function delManual(fecha,sec){
+  const existing=(STATE[fecha]?.[sec]||[]).filter(p=>!p._manual);
+  fbSet(`/${fecha}/${sec}`, existing.length?existing:null)
+    .then(()=>toast('Carga manual eliminada'));
+}
+
+// ── NAV ────────────────────────────────────────────────────
+function goTab(tab){
+  document.querySelectorAll('.nav-tab').forEach(b=>b.classList.remove('active'));
+  document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(`page-${tab}`).classList.add('active');
+  if(tab==='gestion'&&authed) refreshGestion();
+}
+function goGtab(gt){
+  document.querySelectorAll('.gtab').forEach(b=>b.classList.remove('active'));
+  document.querySelector(`[data-gt="${gt}"]`).classList.add('active');
+  document.querySelectorAll('.gsub').forEach(s=>s.classList.remove('active'));
+  document.getElementById(`gsub-${gt}`).classList.add('active');
+  if(gt==='control') renderControl();
+  if(gt==='nomina')  renderNomina();
+}
+function toast(msg,warn=false){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.style.background=warn?'var(--danger)':'var(--success)';
+  t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2400);
+}
+
+init();
+</script>
+</body>
+</html>
