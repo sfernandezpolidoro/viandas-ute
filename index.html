@@ -474,6 +474,26 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- MODAL EDITOR DÍA -->
+<div id="modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;overflow-y:auto;padding:20px" onclick="if(event.target===this)cerrarEditor()">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;max-width:560px;margin:40px auto;padding:28px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div style="font-family:IBM Plex Mono,monospace;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)">Editar pedidos del día</div>
+      <button onclick="cerrarEditor()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;line-height:1">×</button>
+    </div>
+    <div id="modal-fecha-label" style="font-size:18px;font-weight:700;color:var(--accent);font-family:IBM Plex Mono,monospace;margin-bottom:20px"></div>
+    <div id="modal-pedidos-lista"></div>
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+      <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Agregar pedido</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <select id="modal-nombre" style="flex:2;min-width:160px;padding:9px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px"></select>
+        <select id="modal-vianda" style="flex:1;min-width:120px;padding:9px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px"></select>
+        <button onclick="modalAgregar()" class="btn-submit" style="flex:0;padding:9px 16px;font-size:13px;white-space:nowrap">+ Agregar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 // ── FIREBASE CONFIG ───────────────────────────────────────
 const firebaseConfig = {
@@ -514,6 +534,7 @@ const VIANDAS = [
   { c:"O",   l:"Opción",             t:"menu" },
   { c:"EN",  l:"Ensalada (sola)",    t:"ensalada" },
   { c:"AUS", l:"Ausente",            t:"ausente" },
+  { c:"SW",  l:"Sandwich",           t:"menu" },
 ];
 
 const PWD = "UTEBB";
@@ -1004,7 +1025,8 @@ function renderControl(){
       const[y,m,d]=r.fecha.split('-');
       const delBtn=r.hasManual?`<button class="btn-del" title="Borrar carga manual" onclick="delManual('${r.fecha}','${r.sec}')">×</button>`:'';
       const manualTag=r.hasManual?'<span style="font-size:9px;color:var(--muted);margin-left:4px">manual</span>':'';
-      return`<tr><td>${d}/${m}/${y}${manualTag}</td><td><span class="dot ${r.sec==='obras'?'dot-o':'dot-c'}"></span>${r.sec==='obras'?'Ingeniería':'Central'}</td><td>${r.total}</td><td>${r.menus}</td><td>${r.ens}</td><td>${delBtn}</td></tr>`;
+      const editBtn=`<button class="btn-secondary" style="padding:4px 9px;font-size:11px" onclick="abrirEditorDia('${r.fecha}','${r.sec}')">✏️</button>`;
+      return`<tr><td>${d}/${m}/${y}${manualTag}</td><td><span class="dot ${r.sec==='obras'?'dot-o':'dot-c'}"></span>${r.sec==='obras'?'Ingeniería':'Central'}</td><td>${r.total}</td><td>${r.menus}</td><td>${r.ens}</td><td style="white-space:nowrap">${editBtn}${delBtn}</td></tr>`;
     }).join('');
   const mes=new Date().toLocaleDateString('es-AR',{month:'long',year:'numeric'}).replace(/^\w/,c=>c.toUpperCase());
   document.getElementById('resumen-box').innerHTML=`<strong>Resumen ${mes}</strong>\nMenús totales:     ${tM}\nEnsaladas totales: ${tE}\nTotal comidas:     ${tM+tE}`;
@@ -1027,6 +1049,94 @@ function delManual(fecha,sec){
   const existing=(STATE[fecha]?.[sec]||[]).filter(p=>!p._manual);
   fbSet(`/${fecha}/${sec}`, existing.length?existing:null)
     .then(()=>toast('Carga manual eliminada'));
+}
+
+// ── EDITOR DE DÍA ────────────────────────────────────────
+let _editFecha = null, _editSec = null;
+
+function abrirEditorDia(fecha, sec) {
+  _editFecha = fecha;
+  _editSec = sec;
+  const [y,m,d] = fecha.split('-');
+  document.getElementById('modal-fecha-label').textContent = `${d}/${m}/${y} — ${sec==='obras'?'Ingeniería & Obras':'UTE Central'}`;
+
+  // Poblar selector de nombres
+  const nomSel = document.getElementById('modal-nombre');
+  nomSel.innerHTML = '<option value="">— Nombre —</option>';
+  const names = sec==='obras' ? [...nomina('obras-O'),...nomina('obras-T')] : nomina('central');
+  names.forEach(n => { const o=document.createElement('option'); o.value=n; o.textContent=n; nomSel.appendChild(o); });
+
+  // Poblar selector de viandas
+  const viaSel = document.getElementById('modal-vianda');
+  viaSel.innerHTML = '<option value="">— Vianda —</option>';
+  VIANDAS.forEach(v => { const o=document.createElement('option'); o.value=v.c; o.textContent=`${v.c} — ${v.l}`; viaSel.appendChild(o); });
+
+  renderModalLista();
+  document.getElementById('modal-overlay').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+
+function cerrarEditor() {
+  document.getElementById('modal-overlay').style.display = 'none';
+  document.body.style.overflow = '';
+  _editFecha = null; _editSec = null;
+}
+
+function renderModalLista() {
+  const pedidos = (STATE[_editFecha]?.[_editSec] || []).filter(p=>!p._manual);
+  const sorted = [...pedidos].sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
+  const el = document.getElementById('modal-pedidos-lista');
+  if (!sorted.length) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0">Sin pedidos cargados.</div>';
+    return;
+  }
+  el.innerHTML = sorted.map(p => {
+    const sn = safeN(p.nombre);
+    const badgeSec = _editSec==='obras' ? `<span class="badge badge-${p.sector}" style="margin:0 6px">${p.sector}</span>` : '';
+    return `<div class="pedido-item" style="margin-bottom:6px">
+      <span class="pedido-name" style="flex:1">${p.nombre}</span>
+      ${badgeSec}
+      <select onchange="modalCambiarVianda('${sn}', this.value)" style="width:160px;padding:5px 8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px">
+        ${VIANDAS.map(v=>`<option value="${v.c}" ${v.c===p.vianda?'selected':''}>${v.c} — ${v.l}</option>`).join('')}
+        <option value="VAC" ${p.vianda==='VAC'?'selected':''}>VAC — Vacaciones</option>
+      </select>
+      <button class="btn-del" style="margin-left:8px" onclick="modalEliminar('${sn}')">×</button>
+    </div>`;
+  }).join('');
+}
+
+function modalCambiarVianda(sn, nuevaVianda) {
+  if (!nuevaVianda) return;
+  const nombre = realN(sn);
+  const pedidos = [...(STATE[_editFecha]?.[_editSec] || [])];
+  const i = pedidos.findIndex(p=>p.nombre===nombre);
+  if (i>=0) {
+    pedidos[i] = {...pedidos[i], vianda: nuevaVianda};
+    fbSet(`/${_editFecha}/${_editSec}`, pedidos).then(()=>{ renderModalLista(); toast('✓ Vianda actualizada'); });
+  }
+}
+
+function modalEliminar(sn) {
+  const nombre = realN(sn);
+  const pedidos = (STATE[_editFecha]?.[_editSec] || []).filter(p=>p.nombre!==nombre);
+  fbSet(`/${_editFecha}/${_editSec}`, pedidos.length?pedidos:null)
+    .then(()=>{ renderModalLista(); toast('Pedido eliminado'); });
+}
+
+function modalAgregar() {
+  const nom = document.getElementById('modal-nombre').value;
+  const via = document.getElementById('modal-vianda').value;
+  if (!nom) { toast('⚠️ Elegí un nombre',true); return; }
+  if (!via) { toast('⚠️ Elegí una vianda',true); return; }
+  const sec = _editSec;
+  const sector = sec==='obras' ? (nomina('obras-O').includes(nom)?'O':'T') : null;
+  const pedidos = [...(STATE[_editFecha]?.[sec] || [])];
+  const i = pedidos.findIndex(p=>p.nombre===nom);
+  const entry = {nombre:nom, vianda:via, sector};
+  if (i>=0) pedidos[i]=entry; else pedidos.push(entry);
+  fbSet(`/${_editFecha}/${sec}`, pedidos).then(()=>{ renderModalLista(); toast(`✓ Agregado: ${nom}`); });
+  document.getElementById('modal-nombre').value='';
+  document.getElementById('modal-vianda').value='';
 }
 
 // ── NAV ────────────────────────────────────────────────────
