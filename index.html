@@ -537,6 +537,10 @@ const VIANDAS = [
   { c:"AUS", l:"Ausente",            t:"ausente" },
   { c:"S",   l:"Sandwich",           t:"menu" },
 ];
+const VIANDAS_CENTRAL_EXTRA = [
+  { c:"VJ",  l:"Vianda Jorge",       t:"menu" },
+  { c:"VSG", l:"Vianda sin gluten",  t:"menu" },
+];
 
 const PWD = "UTEBB";
 
@@ -649,7 +653,7 @@ function init() {
     const el=document.getElementById(id); if(el) el.textContent=hoyStr;
   });
   fillViandas('obras-vianda');
-  fillViandas('central-vianda');
+  fillViandas('central-vianda', VIANDAS_CENTRAL_EXTRA);
   const hoy=todayKey();
   document.getElementById('vac-desde').value=hoy;
   document.getElementById('vac-hasta').value=hoy;
@@ -691,10 +695,10 @@ function fillNombres(id, arr) {
   arr.forEach(n=>{ const o=document.createElement('option'); o.value=n; o.textContent=n; sel.appendChild(o); });
   if (prev && arr.includes(prev)) sel.value = prev;
 }
-function fillViandas(id) {
+function fillViandas(id, extras=[]) {
   const sel=document.getElementById(id);
   sel.innerHTML='<option value="">— Seleccioná tu vianda —</option>';
-  VIANDAS.forEach(v=>{ const o=document.createElement('option'); o.value=v.c; o.textContent=`${v.c} — ${v.l}`; sel.appendChild(o); });
+  [...VIANDAS, ...extras].forEach(v=>{ const o=document.createElement('option'); o.value=v.c; o.textContent=`${v.c} — ${v.l}`; sel.appendChild(o); });
 }
 function rebuildSelects() {
   fillNombres('central-nombre', nominaDisponible('central'));
@@ -736,7 +740,7 @@ function submitCentral() {
 }
 
 // ── HELPERS ────────────────────────────────────────────────
-function vLabel(c){ if(c==='VAC')return'Vacaciones'; return VIANDAS.find(v=>v.c===c)?.l||c; }
+function vLabel(c){ if(c==='VAC')return'Vacaciones'; return [...VIANDAS,...VIANDAS_CENTRAL_EXTRA].find(v=>v.c===c)?.l||c; }
 function safeN(n){ return n.replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
 function realN(n){ return n.replace(/\\'/g,"'"); }
 function buildBadges(p,sec){
@@ -1163,7 +1167,8 @@ function abrirEditorDia(fecha, sec) {
   // Poblar selector de viandas
   const viaSel = document.getElementById('modal-vianda');
   viaSel.innerHTML = '<option value="">— Vianda —</option>';
-  VIANDAS.forEach(v => { const o=document.createElement('option'); o.value=v.c; o.textContent=`${v.c} — ${v.l}`; viaSel.appendChild(o); });
+  const allViandas = _editSec==='central' ? [...VIANDAS,...VIANDAS_CENTRAL_EXTRA] : VIANDAS;
+  allViandas.forEach(v => { const o=document.createElement('option'); o.value=v.c; o.textContent=`${v.c} — ${v.l}`; viaSel.appendChild(o); });
 
   renderModalLista();
   document.getElementById('modal-overlay').style.display = 'block';
@@ -1191,7 +1196,7 @@ function renderModalLista() {
       <span class="pedido-name" style="flex:1">${p.nombre}</span>
       ${badgeSec}
       <select onchange="modalCambiarVianda('${sn}', this.value)" style="width:160px;padding:5px 8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px">
-        ${VIANDAS.map(v=>`<option value="${v.c}" ${v.c===p.vianda?'selected':''}>${v.c} — ${v.l}</option>`).join('')}
+        ${[...VIANDAS,...(_editSec==='central'?VIANDAS_CENTRAL_EXTRA:[])].map(v=>`<option value="${v.c}" ${v.c===p.vianda?'selected':''}>${v.c} — ${v.l}</option>`).join('')}
         <option value="VAC" ${p.vianda==='VAC'?'selected':''}>VAC — Vacaciones</option>
       </select>
       <button class="btn-del" style="margin-left:8px" onclick="modalEliminar('${sn}')">×</button>
