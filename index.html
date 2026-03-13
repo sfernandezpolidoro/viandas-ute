@@ -416,6 +416,7 @@
         </select>
         <div style="display:flex;gap:8px">
           <button class="btn-secondary" onclick="toggleCargaManual()" id="btn-carga-manual">+ Carga manual</button>
+          <button class="btn-secondary" onclick="imprimirControl()">🖨 Imprimir</button>
           <button class="btn-secondary" onclick="exportControl()">↓ CSV</button>
         </div>
       </div>
@@ -1049,6 +1050,99 @@ function delManual(fecha,sec){
   const existing=(STATE[fecha]?.[sec]||[]).filter(p=>!p._manual);
   fbSet(`/${fecha}/${sec}`, existing.length?existing:null)
     .then(()=>toast('Carga manual eliminada'));
+}
+
+// ── IMPRIMIR CONTROL ─────────────────────────────────────
+function imprimirControl(){
+  const filtro = document.getElementById('ctrl-sector').value;
+  const filtroLabel = filtro==='todos'?'Todos los sectores':filtro==='obras'?'Ingeniería & Obras':'UTE Central';
+  const mes = new Date().toLocaleDateString('es-AR',{month:'long',year:'numeric'}).replace(/^\w/,c=>c.toUpperCase());
+
+  const rows = [];
+  Object.entries(STATE).forEach(([fecha,secs])=>{
+    if(fecha.startsWith('_')) return;
+    ['obras','central'].forEach(sec=>{
+      if(filtro!=='todos' && filtro!==sec) return;
+      if(!secs[sec]?.length) return;
+      const act = secs[sec].filter(p=>p.vianda!=='VAC'&&p.vianda!=='AUS');
+      const men = act.filter(p=>VIANDAS.find(v=>v.c===p.vianda)?.t==='menu').length;
+      const ens = act.filter(p=>p.vianda==='EN').length;
+      if(act.length) rows.push({fecha, sec, total:act.length, menus:men, ens});
+    });
+  });
+  rows.sort((a,b)=>a.fecha.localeCompare(b.fecha));
+
+  if(!rows.length){ toast('Sin datos para imprimir',true); return; }
+
+  const tM = rows.reduce((a,r)=>a+r.menus,0);
+  const tE = rows.reduce((a,r)=>a+r.ens,0);
+  const tD = [...new Set(rows.map(r=>r.fecha))].length;
+
+  const filas = rows.map(r=>{
+    const[y,m,d]=r.fecha.split('-');
+    const secLabel = r.sec==='obras'?'Ingeniería & Obras':'UTE Central';
+    const color = r.sec==='obras'?'#ff8c42':'#4da6ff';
+    return `<tr>
+      <td style="padding:8px 12px;border-bottom:1px solid #e8e8e8">${d}/${m}/${y}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #e8e8e8">
+        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};margin-right:6px"></span>${secLabel}
+      </td>
+      <td style="padding:8px 12px;border-bottom:1px solid #e8e8e8;text-align:center">${r.total}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #e8e8e8;text-align:center;font-weight:600">${r.menus}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #e8e8e8;text-align:center;font-weight:600">${r.ens}</td>
+    </tr>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>Control de viandas — ${mes}</title>
+  <style>
+    body{font-family:Arial,sans-serif;padding:28px;color:#111;font-size:14px}
+    h2{margin:0 0 4px 0;font-size:20px}
+    .sub{color:#555;font-size:13px;margin-bottom:6px}
+    .filtro{display:inline-block;padding:3px 10px;background:#f0f0f0;border-radius:4px;font-size:12px;margin-bottom:20px}
+    table{width:100%;border-collapse:collapse}
+    th{padding:9px 12px;background:#222;color:#fff;text-align:left;font-size:12px;letter-spacing:.5px;text-transform:uppercase}
+    th.center{text-align:center}
+    tr:last-child td{border-bottom:none}
+    tr:hover td{background:#fafafa}
+    .resumen{margin-top:28px;border:2px solid #222;border-radius:8px;overflow:hidden}
+    .resumen-title{background:#222;color:#fff;padding:10px 16px;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase}
+    .resumen-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0}
+    .resumen-cell{padding:16px;text-align:center;border-right:1px solid #e0e0e0}
+    .resumen-cell:last-child{border-right:none}
+    .resumen-n{font-size:32px;font-weight:700;margin-bottom:4px}
+    .resumen-label{font-size:11px;color:#666;text-transform:uppercase;letter-spacing:1px}
+    @media print{body{padding:14px}}
+  </style>
+  </head><body>
+    <h2>Control de Viandas</h2>
+    <div class="sub">${mes}</div>
+    <div class="filtro">${filtroLabel}</div>
+    <table>
+      <thead><tr>
+        <th>Fecha</th>
+        <th>Sector</th>
+        <th class="center">Comensales</th>
+        <th class="center">Menús</th>
+        <th class="center">Ensaladas</th>
+      </tr></thead>
+      <tbody>${filas}</tbody>
+    </table>
+    <div class="resumen">
+      <div class="resumen-title">Resumen del mes</div>
+      <div class="resumen-grid">
+        <div class="resumen-cell"><div class="resumen-n">${tM}</div><div class="resumen-label">Menús</div></div>
+        <div class="resumen-cell"><div class="resumen-n">${tE}</div><div class="resumen-label">Ensaladas</div></div>
+        <div class="resumen-cell"><div class="resumen-n">${tD}</div><div class="resumen-label">Días</div></div>
+      </div>
+    </div>
+  </body></html>`;
+
+  const w = window.open('','_blank','width=750,height=650');
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(()=>w.print(), 400);
 }
 
 // ── EDITOR DE DÍA ────────────────────────────────────────
