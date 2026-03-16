@@ -541,6 +541,8 @@ const VIANDAS_CENTRAL_EXTRA = [
   { c:"VJ",  l:"Vianda Jorge",       t:"menu" },
   { c:"VSG", l:"Vianda sin gluten",  t:"menu" },
 ];
+const ALL_VIANDAS = ()=>[...VIANDAS,...VIANDAS_CENTRAL_EXTRA];
+
 
 const PWD = "UTEBB";
 
@@ -1012,7 +1014,7 @@ function renderControl(){
     ['obras','central'].forEach(sec=>{
       if(!secs[sec]?.length)return; if(filtro!=='todos'&&filtro!==sec)return;
       const act=secs[sec].filter(p=>p.vianda!=='VAC'&&p.vianda!=='AUS');
-      const men=act.filter(p=>VIANDAS.find(v=>v.c===p.vianda)?.t==='menu');
+      const men=act.filter(p=>ALL_VIANDAS().find(v=>v.c===p.vianda)?.t==='menu');
       const ens=act.filter(p=>p.vianda==='EN');
       const hasManual=act.some(p=>p._manual);
       if(act.length)rows.push({fecha,sec,total:act.length,menus:men.length,ens:ens.length,hasManual});
@@ -1069,7 +1071,7 @@ function imprimirControl(){
       if(filtro!=='todos' && filtro!==sec) return;
       if(!secs[sec]?.length) return;
       const act = secs[sec].filter(p=>p.vianda!=='VAC'&&p.vianda!=='AUS');
-      const men = act.filter(p=>VIANDAS.find(v=>v.c===p.vianda)?.t==='menu').length;
+      const men = act.filter(p=>ALL_VIANDAS().find(v=>v.c===p.vianda)?.t==='menu').length;
       const ens = act.filter(p=>p.vianda==='EN').length;
       if(act.length) rows.push({fecha, sec, total:act.length, menus:men, ens});
     });
