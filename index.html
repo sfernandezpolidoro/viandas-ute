@@ -408,17 +408,32 @@
 
     <!-- CONTROL -->
     <div class="gsub" id="gsub-control">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:10px;flex-wrap:wrap">
-        <select id="ctrl-sector" onchange="renderControl()" style="flex:1;min-width:160px">
-          <option value="todos">Todos los sectores</option>
-          <option value="obras">Ingeniería & Obras</option>
-          <option value="central">UTE Central</option>
-        </select>
-        <div style="display:flex;gap:8px">
-          <button class="btn-secondary" onclick="toggleCargaManual()" id="btn-carga-manual">+ Carga manual</button>
-          <button class="btn-secondary" onclick="imprimirControl()">🖨 Imprimir</button>
-          <button class="btn-secondary" onclick="exportControl()">↓ CSV</button>
+      <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;align-items:flex-end">
+        <div style="flex:1;min-width:150px">
+          <label>Sector</label>
+          <select id="ctrl-sector" onchange="renderControl()" style="width:100%">
+            <option value="todos">Todos los sectores</option>
+            <option value="obras">Ingeniería & Obras</option>
+            <option value="central">UTE Central</option>
+          </select>
         </div>
+        <div style="flex:1;min-width:130px">
+          <label>Desde</label>
+          <input type="date" id="ctrl-desde" onchange="renderControl()">
+        </div>
+        <div style="flex:1;min-width:130px">
+          <label>Hasta</label>
+          <input type="date" id="ctrl-hasta" onchange="renderControl()">
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0;align-items:flex-end">
+          <button class="btn-secondary" onclick="setMesActual()">Mes actual</button>
+          <button class="btn-secondary" onclick="setMesAnterior()">Mes anterior</button>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:16px">
+        <button class="btn-secondary" onclick="toggleCargaManual()" id="btn-carga-manual">+ Carga manual</button>
+        <button class="btn-secondary" onclick="imprimirControl()">🖨 Imprimir</button>
+        <button class="btn-secondary" onclick="exportControl()">↓ CSV</button>
       </div>
 
       <!-- PANEL CARGA MANUAL -->
@@ -868,24 +883,39 @@ function imprimirLista(sec){
       actReal.filter(p=>p.sector===sector).forEach(p=>{g[p.vianda]=(g[p.vianda]||0)+1;});
       return Object.entries(g).map(([k,n])=>`<tr><td style="padding:5px 10px;border-bottom:1px solid #e8e8e8">${k} — ${vLabel(k)}</td><td style="padding:5px 10px;border-bottom:1px solid #e8e8e8;text-align:center;font-weight:700">${n}</td></tr>`).join('');
     };
-    const rowsO = grpSec('O'), rowsT = grpSec('T');
+    const grpTotal = () => {
+      const g={};
+      actReal.forEach(p=>{g[p.vianda]=(g[p.vianda]||0)+1;});
+      return Object.entries(g).map(([k,n])=>`<tr><td style="padding:5px 10px;border-bottom:1px solid #e8e8e8">${k} — ${vLabel(k)}</td><td style="padding:5px 10px;border-bottom:1px solid #e8e8e8;text-align:center;font-weight:700">${n}</td></tr>`).join('');
+    };
+    const rowsO = grpSec('O'), rowsT = grpSec('T'), rowsTot = grpTotal();
     const totalO = actReal.filter(p=>p.sector==='O').length;
     const totalT = actReal.filter(p=>p.sector==='T').length;
+    const totalAll = actReal.length;
     resumenHtml = `
-      <div style="margin-top:32px;display:flex;gap:24px;flex-wrap:wrap">
-        <div style="flex:1;min-width:200px;border:2px solid #333;border-radius:6px;overflow:hidden">
-          <div style="background:#333;color:#fff;padding:8px 12px;font-weight:700;font-size:13px">🏢 OFICINA — ${totalO} vianda${totalO!==1?'s':''}</div>
+      <div style="margin-top:32px">
+        <div style="border:2px solid #111;border-radius:6px;overflow:hidden;margin-bottom:16px">
+          <div style="background:#111;color:#fff;padding:8px 12px;font-weight:700;font-size:13px">📦 TOTAL GENERAL — ${totalAll} vianda${totalAll!==1?'s':''}</div>
           <table style="width:100%;border-collapse:collapse;font-size:13px">
-            <thead><tr><th style="padding:5px 10px;background:#f5f5f5;text-align:left">Vianda</th><th style="padding:5px 10px;background:#f5f5f5;text-align:center">Cant.</th></tr></thead>
-            <tbody>${rowsO||'<tr><td colspan="2" style="padding:8px 10px;color:#999">Sin pedidos</td></tr>'}</tbody>
+            <thead><tr><th style="padding:5px 10px;background:#f0f0f0;text-align:left">Vianda</th><th style="padding:5px 10px;background:#f0f0f0;text-align:center">Cant.</th></tr></thead>
+            <tbody>${rowsTot||'<tr><td colspan="2" style="padding:8px 10px;color:#999">Sin pedidos</td></tr>'}</tbody>
           </table>
         </div>
-        <div style="flex:1;min-width:200px;border:2px solid #333;border-radius:6px;overflow:hidden">
-          <div style="background:#333;color:#fff;padding:8px 12px;font-weight:700;font-size:13px">🔧 TALLER — ${totalT} vianda${totalT!==1?'s':''}</div>
-          <table style="width:100%;border-collapse:collapse;font-size:13px">
-            <thead><tr><th style="padding:5px 10px;background:#f5f5f5;text-align:left">Vianda</th><th style="padding:5px 10px;background:#f5f5f5;text-align:center">Cant.</th></tr></thead>
-            <tbody>${rowsT||'<tr><td colspan="2" style="padding:8px 10px;color:#999">Sin pedidos</td></tr>'}</tbody>
-          </table>
+        <div style="display:flex;gap:16px;flex-wrap:wrap">
+          <div style="flex:1;min-width:200px;border:2px solid #333;border-radius:6px;overflow:hidden">
+            <div style="background:#333;color:#fff;padding:8px 12px;font-weight:700;font-size:13px">🏢 OFICINA — ${totalO} vianda${totalO!==1?'s':''}</div>
+            <table style="width:100%;border-collapse:collapse;font-size:13px">
+              <thead><tr><th style="padding:5px 10px;background:#f5f5f5;text-align:left">Vianda</th><th style="padding:5px 10px;background:#f5f5f5;text-align:center">Cant.</th></tr></thead>
+              <tbody>${rowsO||'<tr><td colspan="2" style="padding:8px 10px;color:#999">Sin pedidos</td></tr>'}</tbody>
+            </table>
+          </div>
+          <div style="flex:1;min-width:200px;border:2px solid #333;border-radius:6px;overflow:hidden">
+            <div style="background:#333;color:#fff;padding:8px 12px;font-weight:700;font-size:13px">🔧 TALLER — ${totalT} vianda${totalT!==1?'s':''}</div>
+            <table style="width:100%;border-collapse:collapse;font-size:13px">
+              <thead><tr><th style="padding:5px 10px;background:#f5f5f5;text-align:left">Vianda</th><th style="padding:5px 10px;background:#f5f5f5;text-align:center">Cant.</th></tr></thead>
+              <tbody>${rowsT||'<tr><td colspan="2" style="padding:8px 10px;color:#999">Sin pedidos</td></tr>'}</tbody>
+            </table>
+          </div>
         </div>
       </div>`;
   }
@@ -1007,10 +1037,32 @@ function guardarCargaManual(){
     document.getElementById('cm-ensaladas').value='';
   });
 }
+function setMesActual(){
+  const hoy=new Date();
+  const y=hoy.getFullYear(), m=String(hoy.getMonth()+1).padStart(2,'0');
+  const ultimo=new Date(y,hoy.getMonth()+1,0).getDate();
+  document.getElementById('ctrl-desde').value=`${y}-${m}-01`;
+  document.getElementById('ctrl-hasta').value=`${y}-${m}-${String(ultimo).padStart(2,'0')}`;
+  renderControl();
+}
+function setMesAnterior(){
+  const hoy=new Date();
+  const d=new Date(hoy.getFullYear(),hoy.getMonth()-1,1);
+  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0');
+  const ultimo=new Date(y,d.getMonth()+1,0).getDate();
+  document.getElementById('ctrl-desde').value=`${y}-${m}-01`;
+  document.getElementById('ctrl-hasta').value=`${y}-${m}-${String(ultimo).padStart(2,'0')}`;
+  renderControl();
+}
 function renderControl(){
-  const filtro=document.getElementById('ctrl-sector').value, rows=[];
+  const filtro=document.getElementById('ctrl-sector').value;
+  const desde=document.getElementById('ctrl-desde')?.value||'';
+  const hasta=document.getElementById('ctrl-hasta')?.value||'';
+  const rows=[];
   Object.entries(STATE).forEach(([fecha,secs])=>{
-    if(fecha.startsWith('_'))return;
+    if(fecha.startsWith('_')) return;
+    if(desde && fecha<desde) return;
+    if(hasta && fecha>hasta) return;
     ['obras','central'].forEach(sec=>{
       if(!secs[sec]?.length)return; if(filtro!=='todos'&&filtro!==sec)return;
       const act=secs[sec].filter(p=>p.vianda!=='VAC'&&p.vianda!=='AUS');
@@ -1035,8 +1087,18 @@ function renderControl(){
       const editBtn=`<button class="btn-secondary" style="padding:4px 9px;font-size:11px" onclick="abrirEditorDia('${r.fecha}','${r.sec}')">✏️</button>`;
       return`<tr><td>${d}/${m}/${y}${manualTag}</td><td><span class="dot ${r.sec==='obras'?'dot-o':'dot-c'}"></span>${r.sec==='obras'?'Ingeniería':'Central'}</td><td>${r.total}</td><td>${r.menus}</td><td>${r.ens}</td><td style="white-space:nowrap">${editBtn}${delBtn}</td></tr>`;
     }).join('');
-  const mes=new Date().toLocaleDateString('es-AR',{month:'long',year:'numeric'}).replace(/^\w/,c=>c.toUpperCase());
-  document.getElementById('resumen-box').innerHTML=`<strong>Resumen ${mes}</strong>\nMenús totales:     ${tM}\nEnsaladas totales: ${tE}\nTotal comidas:     ${tM+tE}`;
+  let resumenLabel='Resumen completo';
+  const desdeV=document.getElementById('ctrl-desde')?.value;
+  const hastaV=document.getElementById('ctrl-hasta')?.value;
+  if(desdeV&&hastaV){
+    const fmtD=desdeV.split('-').reverse().join('/'), fmtH=hastaV.split('-').reverse().join('/');
+    resumenLabel=`Resumen ${fmtD} → ${fmtH}`;
+  } else if(desdeV){
+    resumenLabel=`Resumen desde ${desdeV.split('-').reverse().join('/')}`;
+  } else if(hastaV){
+    resumenLabel=`Resumen hasta ${hastaV.split('-').reverse().join('/')}`;
+  }
+  document.getElementById('resumen-box').innerHTML=`<strong>${resumenLabel}</strong>\nMenús totales:     ${tM}\nEnsaladas totales: ${tE}\nTotal comidas:     ${tM+tE}`;
 }
 function exportControl(){
   let csv='Fecha,Sector,Nombre,Vianda,Comedor\n';
@@ -1062,11 +1124,18 @@ function delManual(fecha,sec){
 function imprimirControl(){
   const filtro = document.getElementById('ctrl-sector').value;
   const filtroLabel = filtro==='todos'?'Todos los sectores':filtro==='obras'?'Ingeniería & Obras':'UTE Central';
-  const mes = new Date().toLocaleDateString('es-AR',{month:'long',year:'numeric'}).replace(/^\w/,c=>c.toUpperCase());
+  const desde=document.getElementById('ctrl-desde')?.value||'';
+  const hasta=document.getElementById('ctrl-hasta')?.value||'';
+  let periodoLabel='Período completo';
+  if(desde&&hasta) periodoLabel=`${desde.split('-').reverse().join('/')} → ${hasta.split('-').reverse().join('/')}`;
+  else if(desde) periodoLabel=`Desde ${desde.split('-').reverse().join('/')}`;
+  else if(hasta) periodoLabel=`Hasta ${hasta.split('-').reverse().join('/')}`;
 
   const rows = [];
   Object.entries(STATE).forEach(([fecha,secs])=>{
     if(fecha.startsWith('_')) return;
+    if(desde && fecha<desde) return;
+    if(hasta && fecha>hasta) return;
     ['obras','central'].forEach(sec=>{
       if(filtro!=='todos' && filtro!==sec) return;
       if(!secs[sec]?.length) return;
@@ -1122,7 +1191,7 @@ function imprimirControl(){
   </style>
   </head><body>
     <h2>Control de Viandas</h2>
-    <div class="sub">${mes}</div>
+    <div class="sub">${periodoLabel}</div>
     <div class="filtro">${filtroLabel}</div>
     <table>
       <thead><tr>
@@ -1253,7 +1322,7 @@ function goGtab(gt){
   document.querySelector(`[data-gt="${gt}"]`).classList.add('active');
   document.querySelectorAll('.gsub').forEach(s=>s.classList.remove('active'));
   document.getElementById(`gsub-${gt}`).classList.add('active');
-  if(gt==='control') renderControl();
+  if(gt==='control'){ if(!document.getElementById('ctrl-desde').value) setMesActual(); else renderControl(); }
   if(gt==='nomina')  renderNomina();
 }
 function toast(msg,warn=false){
