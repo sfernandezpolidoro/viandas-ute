@@ -663,6 +663,48 @@ function logout() {
 // ── INIT ───────────────────────────────────────────────────
 let sectorObras = null;
 
+// ── HORARIO LÍMITE ─────────────────────────────────────────
+const HORA_LIMITE = { h: 8, m: 30 }; // 8:30 am
+
+function isPastDeadline() {
+  const ahora = new Date();
+  const limite = new Date();
+  limite.setHours(HORA_LIMITE.h, HORA_LIMITE.m, 0, 0);
+  return ahora.getTime() > limite.getTime();
+}
+
+function applyDeadlineLock() {
+  const cerrado = isPastDeadline();
+  const horaStr = `${String(HORA_LIMITE.h).padStart(2,'0')}:${String(HORA_LIMITE.m).padStart(2,'0')}`;
+
+  ['obras','central'].forEach(tab => {
+    const card = document.querySelector(`#page-${tab} .card`);
+    if (!card) return;
+    let banner = document.getElementById(`cerrado-${tab}`);
+    if (cerrado) {
+      card.style.display = 'none';
+      if (!banner) {
+        banner = document.createElement('div');
+        banner.id = `cerrado-${tab}`;
+        banner.className = 'card';
+        banner.style.textAlign = 'center';
+        banner.style.borderLeft = '4px solid var(--danger)';
+        banner.innerHTML = `
+          <div style="font-size:32px;margin-bottom:10px">⏰</div>
+          <div style="font-size:15px;font-weight:700;color:var(--danger);margin-bottom:8px">Pedido cerrado</div>
+          <div style="font-size:13px;color:var(--muted);line-height:1.6">
+            El horario límite para cargar el pedido es las ${horaStr} hs.<br>
+            Si necesitás cargar tu vianda, comunicate con tu encargado de sector.
+          </div>`;
+        card.parentNode.insertBefore(banner, card);
+      }
+    } else {
+      card.style.display = '';
+      if (banner) banner.remove();
+    }
+  });
+}
+
 function init() {
   const fmt = {weekday:'long',day:'numeric',month:'long',year:'numeric'};
   const hoyStr = new Date().toLocaleDateString('es-AR',fmt).replace(/^\w/,c=>c.toUpperCase());
@@ -674,6 +716,10 @@ function init() {
   const hoy=todayKey();
   document.getElementById('vac-desde').value=hoy;
   document.getElementById('vac-hasta').value=hoy;
+
+  applyDeadlineLock();
+  // Revisar cada minuto si se pasó el horario límite
+  setInterval(applyDeadlineLock, 60000);
 
   // Mostrar spinner mientras conecta
   showConnecting(true);
@@ -733,6 +779,7 @@ function setSector(s) {
 
 // ── SUBMIT ─────────────────────────────────────────────────
 function submitObras() {
+  if(isPastDeadline()) { toast('⚠️ El horario de pedido ya cerró',true); applyDeadlineLock(); return; }
   const nom=document.getElementById('obras-nombre').value;
   const via=document.getElementById('obras-vianda').value;
   if(!sectorObras) { toast('⚠️ Elegí Oficina o Taller',true); return; }
@@ -745,6 +792,7 @@ function submitObras() {
   document.getElementById('obras-vianda').value='';
 }
 function submitCentral() {
+  if(isPastDeadline()) { toast('⚠️ El horario de pedido ya cerró',true); applyDeadlineLock(); return; }
   const nom=document.getElementById('central-nombre').value;
   const via=document.getElementById('central-vianda').value;
   if(!nom) { toast('⚠️ Elegí tu nombre',true); return; }
