@@ -86,6 +86,7 @@
   }
   .sector-btn.sel-O { border-color: var(--col-O); color: var(--col-O); background: rgba(77,166,255,.08); }
   .sector-btn.sel-T { border-color: var(--col-T); color: var(--col-T); background: rgba(255,140,66,.08); }
+  .sector-btn.sel-R { border-color: var(--success); color: var(--success); background: rgba(78,203,113,.08); }
 
   .btn-submit {
     width: 100%; padding: 13px; background: var(--accent); color: #0f1117;
@@ -122,6 +123,7 @@
   .badge-v   { background: rgba(232,197,71,.15);  color: var(--accent); }
   .badge-O   { background: rgba(77,166,255,.15);  color: var(--col-O); }
   .badge-T   { background: rgba(255,140,66,.15);  color: var(--col-T); }
+  .badge-R   { background: rgba(78,203,113,.15);  color: var(--success); }
   .badge-vac { background: rgba(167,139,250,.2);  color: var(--col-vac); }
   .badge-aus { background: rgba(255,92,92,.15);   color: var(--danger); }
 
@@ -217,7 +219,6 @@
   <nav class="nav-tabs">
     <button class="nav-tab active" data-tab="obras"      onclick="goTab('obras')">Ingeniería & Obras</button>
     <button class="nav-tab"        data-tab="central"    onclick="goTab('central')">UTE Central</button>
-    <button class="nav-tab"        data-tab="refineria"  onclick="goTab('refineria')">Refinería</button>
     <button class="nav-tab"        data-tab="gestion"    onclick="goTab('gestion')">🔒 Gestión</button>
   </nav>
 </header>
@@ -235,6 +236,7 @@
       <div class="sector-toggle">
         <button class="sector-btn" id="btn-O" onclick="setSector('O')">O — Oficina</button>
         <button class="sector-btn" id="btn-T" onclick="setSector('T')">T — Taller</button>
+        <button class="sector-btn" id="btn-R" onclick="setSector('R')">R — Refinería</button>
       </div>
     </div>
     <div class="field">
@@ -266,26 +268,6 @@
       <select id="central-vianda"><option value="">— Seleccioná tu vianda —</option></select>
     </div>
     <button class="btn-submit" onclick="submitCentral()">✓ Enviar pedido</button>
-  </div>
-</div>
-
-<!-- ══ REFINERÍA ══ -->
-<div class="page" id="page-refineria">
-  <div class="date-banner">
-    <div><div class="date-label">Pedido del día</div><div class="date-value" id="date-refineria"></div></div>
-    <div style="font-size:11px;color:var(--muted);text-align:right">Refinería</div>
-  </div>
-  <div class="card" id="refineria-form">
-    <div class="card-title">Cargar pedido</div>
-    <div class="field">
-      <label>Nombre y Apellido</label>
-      <select id="refineria-nombre"><option value="">— Seleccioná tu nombre —</option></select>
-    </div>
-    <div class="field">
-      <label>Vianda</label>
-      <select id="refineria-vianda"><option value="">— Seleccioná tu vianda —</option></select>
-    </div>
-    <button class="btn-submit" onclick="submitRefineria()">✓ Enviar pedido</button>
   </div>
 </div>
 
@@ -330,10 +312,7 @@
         <div style="font-size:11px;color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px;font-weight:600">UTE Central</div>
         <div id="g-central-pend"></div>
       </div>
-      <div style="margin-top:20px">
-        <div style="font-size:11px;color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px;font-weight:600">Refinería</div>
-        <div id="g-refineria-pend"></div>
-      </div>
+
     </div>
 
     <!-- MENSAJES -->
@@ -362,18 +341,7 @@
         </div>
         <div id="g-central-lista"></div>
       </div>
-      <div class="card">
-        <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
-          Refinería <button class="btn-secondary" onclick="copyMsg('refineria')">📋 Copiar</button>
-        </div>
-        <div class="msg-box" id="g-refineria-msg">—</div>
-      </div>
-      <div class="card">
-        <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
-          Todos los pedidos — Refinería <button class="btn-secondary" onclick="imprimirLista('refineria')">🖨 Imprimir</button>
-        </div>
-        <div id="g-refineria-lista"></div>
-      </div>
+
     </div>
 
     <!-- NÓMINA -->
@@ -437,8 +405,6 @@
             <option value="obras-O">Ingeniería — Oficina</option>
             <option value="obras-T">Ingeniería — Taller</option>
             <option value="central">UTE Central</option>
-          <option value="refineria">Refinería</option>
-            <option value="refineria">Refinería</option>
           </select>
         </div>
         <div class="field">
@@ -684,7 +650,7 @@ function autoVac() {
   [...nomina('obras-O').map(n=>({n,c:'O',s:'obras'})),
    ...nomina('obras-T').map(n=>({n,c:'T',s:'obras'})),
    ...nomina('central').map(n=>({n,c:null,s:'central'})),
-   ...nomina('refineria').map(n=>({n,c:null,s:'refineria'}))
+   ...nomina('refineria').map(n=>({n,c:'R',s:'obras'}))
   ].forEach(({n,c,s}) => {
     if (isVac(n,s,hoy)) promises.push(addPedido(s,{nombre:n,vianda:'VAC',sector:c}));
   });
@@ -729,7 +695,7 @@ function applyDeadlineLock() {
   const cerrado = isPastDeadline();
   const horaStr = `${String(HORA_LIMITE.h).padStart(2,'0')}:${String(HORA_LIMITE.m).padStart(2,'0')}`;
 
-  ['obras','central','refineria'].forEach(tab => {
+  ['obras','central'].forEach(tab => {
     const card = document.querySelector(`#page-${tab} .card`);
     if (!card) return;
     let banner = document.getElementById(`cerrado-${tab}`);
@@ -760,12 +726,12 @@ function applyDeadlineLock() {
 function init() {
   const fmt = {weekday:'long',day:'numeric',month:'long',year:'numeric'};
   const hoyStr = new Date().toLocaleDateString('es-AR',fmt).replace(/^\w/,c=>c.toUpperCase());
-  ['date-obras','date-central','date-refineria','date-gestion'].forEach(id => {
+  ['date-obras','date-central','date-gestion'].forEach(id => {
     const el=document.getElementById(id); if(el) el.textContent=hoyStr;
   });
   fillViandas('obras-vianda');
   fillViandas('central-vianda', VIANDAS_CENTRAL_EXTRA);
-  fillViandas('refineria-vianda');
+
   const hoy=todayKey();
   document.getElementById('vac-desde').value=hoy;
   document.getElementById('vac-hasta').value=hoy;
@@ -799,7 +765,7 @@ function showConnecting(on) {
 // ── NÓMINA DISPONIBLE (sin vacaciones hoy) ────────────────
 function nominaDisponible(key) {
   const hoy = todayKey();
-  const sec = key.startsWith('obras') ? 'obras' : key === 'refineria' ? 'refineria' : 'central';
+  const sec = key.startsWith('obras') ? 'obras' : key === 'refineria' ? 'obras' : 'central';
   return nomina(key).filter(n => !isVac(n, sec, hoy));
 }
 
@@ -818,7 +784,7 @@ function fillViandas(id, extras=[]) {
 }
 function rebuildSelects() {
   fillNombres('central-nombre', nominaDisponible('central'));
-  fillNombres('refineria-nombre', nominaDisponible('refineria'));
+  if(sectorObras) setSector(sectorObras);
 }
 
 // ── SECTOR ─────────────────────────────────────────────────
@@ -826,9 +792,11 @@ function setSector(s) {
   sectorObras = s;
   document.getElementById('btn-O').className='sector-btn'+(s==='O'?' sel-O':'');
   document.getElementById('btn-T').className='sector-btn'+(s==='T'?' sel-T':'');
+  document.getElementById('btn-R').className='sector-btn'+(s==='R'?' sel-R':'');
   const sel=document.getElementById('obras-nombre');
   sel.disabled=false;
-  fillNombres('obras-nombre', nominaDisponible(s==='O'?'obras-O':'obras-T'));
+  const key = s==='O'?'obras-O':s==='T'?'obras-T':'refineria';
+  fillNombres('obras-nombre', nominaDisponible(key));
 }
 
 // ── SUBMIT ─────────────────────────────────────────────────
@@ -836,7 +804,7 @@ function submitObras() {
   if(isPastDeadline()) { toast('⚠️ El horario de pedido ya cerró',true); applyDeadlineLock(); return; }
   const nom=document.getElementById('obras-nombre').value;
   const via=document.getElementById('obras-vianda').value;
-  if(!sectorObras) { toast('⚠️ Elegí Oficina o Taller',true); return; }
+  if(!sectorObras) { toast('⚠️ Elegí Oficina, Taller o Refinería',true); return; }
   if(!nom)         { toast('⚠️ Elegí tu nombre',true); return; }
   if(!via)         { toast('⚠️ Elegí tu vianda',true); return; }
   addPedido('obras',{nombre:nom,vianda:via,sector:sectorObras})
@@ -857,18 +825,7 @@ function submitCentral() {
   document.getElementById('central-nombre').value='';
   document.getElementById('central-vianda').value='';
 }
-function submitRefineria() {
-  if(isPastDeadline()) { toast('⚠️ El horario de pedido ya cerró',true); applyDeadlineLock(); return; }
-  const nom=document.getElementById('refineria-nombre').value;
-  const via=document.getElementById('refineria-vianda').value;
-  if(!nom) { toast('⚠️ Elegí tu nombre',true); return; }
-  if(!via) { toast('⚠️ Elegí tu vianda',true); return; }
-  addPedido('refineria',{nombre:nom,vianda:via})
-    .then(()=>toast('✓ Pedido cargado'))
-    .catch(()=>toast('⚠️ Error al guardar',true));
-  document.getElementById('refineria-nombre').value='';
-  document.getElementById('refineria-vianda').value='';
-}
+
 
 // ── HELPERS ────────────────────────────────────────────────
 function vLabel(c){ if(c==='VAC')return'Vacaciones'; return [...VIANDAS,...VIANDAS_CENTRAL_EXTRA].find(v=>v.c===c)?.l||c; }
@@ -877,7 +834,7 @@ function realN(n){ return n.replace(/\\'/g,"'"); }
 function buildBadges(p,sec){
   const isV=p.vianda==='VAC',isA=p.vianda==='AUS';
   const bv=isV?'<span class="badge badge-vac">VACACIONES</span>':isA?'<span class="badge badge-aus">AUSENTE</span>':`<span class="badge badge-v">${p.vianda}</span>`;
-  const bs=sec==='obras'?`<span class="badge badge-${p.sector}">${p.sector}</span>`:'';
+  const bs=sec==='obras'&&p.sector?`<span class="badge badge-${p.sector}">${p.sector}</span>`:'';
   return bv+bs;
 }
 
@@ -885,7 +842,6 @@ function buildBadges(p,sec){
 function refreshGestion() {
   renderPend('obras');
   renderPend('central');
-  renderPend('refineria');
   renderMsgs();
   renderListasGestion();
   renderNomina();
@@ -898,12 +854,12 @@ function renderPend(sec) {
   const wrap=document.getElementById(`g-${sec}-pend`);
   if(!wrap) return;
   const pedNoms=getPedidos(sec).map(p=>p.nombre);
-  const todos=sec==='obras'?[...nomina('obras-O'),...nomina('obras-T')]:sec==='refineria'?nomina('refineria'):nomina('central');
+  const todos=sec==='obras'?[...nomina('obras-O'),...nomina('obras-T'),...nomina('refineria')]:nomina('central');
   const pend=todos.filter(n=>!pedNoms.includes(n));
   const opts=VIANDAS.map(v=>`<option value="${v.c}">${v.c} — ${v.l}</option>`).join('');
   if(!pend.length){ wrap.innerHTML='<div style="color:var(--success);font-size:13px;padding:10px 0">✓ Todos cargaron su pedido.</div>'; return; }
   const rows=pend.map(n=>{
-    const com=sec==='obras'?(nomina('obras-O').includes(n)?'O':'T'):null;
+    const com=sec==='obras'?(nomina('obras-O').includes(n)?'O':nomina('obras-T').includes(n)?'T':'R'):null;
     const sn=safeN(n);
     const fn=sec==='obras'?`asignObras('${sn}','${com}')`:sec==='refineria'?`asignRefineria('${sn}')`:`asignCentral('${sn}')`;
     const bdg=com?`<span class="badge badge-${com}" style="margin-left:5px">${com}</span>`:'';
@@ -934,11 +890,10 @@ function buildMsg(sec){
   const hoy=new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'}).replace(/^\w/,c=>c.toUpperCase());
   const grp=arr=>{const g={};arr.forEach(p=>{g[p.vianda]=(g[p.vianda]||0)+1;});return g;};
   const fmt=g=>Object.entries(g).map(([k,n])=>`  ${n}x ${k} — ${vLabel(k)}`).join('\n');
-  if(sec==='refineria'){
-    return `📋 PEDIDO REFINERÍA\n${hoy}\n\nTotal: ${act.length} viandas\n${fmt(grp(act))}`;
-  }
   if(sec==='obras'){
+    const of=act.filter(p=>p.sector==='O'),ta=act.filter(p=>p.sector==='T'),re=act.filter(p=>p.sector==='R');
     let m=`📋 PEDIDO UTE INGENIERÍA & CONSTRUCCIONES\n${hoy}\n\nTotal: ${act.length} viandas\n${fmt(grp(act))}`;
+    if(re.length) m+=`\n\n🏭 REFINERÍA (${re.length})\n${fmt(grp(re))}`;
     return m.trim();
   }
   return `📋 PEDIDO UTE CENTRAL\n${hoy}\n\nTotal: ${act.length} viandas\n${fmt(grp(act))}`;
@@ -946,7 +901,6 @@ function buildMsg(sec){
 function renderMsgs(){
   document.getElementById('g-obras-msg').textContent=buildMsg('obras');
   document.getElementById('g-central-msg').textContent=buildMsg('central');
-  document.getElementById('g-refineria-msg').textContent=buildMsg('refineria');
 }
 function copyMsg(sec){
   const txt = document.getElementById(`g-${sec}-msg`).textContent;
@@ -965,7 +919,7 @@ function copyFallback(txt){
 
 // LISTAS GESTIÓN
 function renderListasGestion(){
-  ['obras','central','refineria'].forEach(sec=>{
+  ['obras','central'].forEach(sec=>{
     const pedidos=getPedidos(sec).filter(p=>!p._manual), el=document.getElementById(`g-${sec}-lista`);
     if(!pedidos.length){el.innerHTML='<div style="color:var(--muted);font-size:13px">Sin pedidos.</div>';return;}
     const sorted=[...pedidos].sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
@@ -1011,6 +965,8 @@ function imprimirLista(sec){
       actReal.filter(p=>p.sector===sector).forEach(p=>{g[p.vianda]=(g[p.vianda]||0)+1;});
       return Object.entries(g).map(([k,n])=>`<tr><td style="padding:5px 10px;border-bottom:1px solid #e8e8e8">${k} — ${vLabel(k)}</td><td style="padding:5px 10px;border-bottom:1px solid #e8e8e8;text-align:center;font-weight:700">${n}</td></tr>`).join('');
     };
+    const rowsR = grpSec('R');
+    const totalR = actReal.filter(p=>p.sector==='R').length;
     const grpTotal = () => {
       const g={};
       actReal.forEach(p=>{g[p.vianda]=(g[p.vianda]||0)+1;});
@@ -1030,20 +986,27 @@ function imprimirLista(sec){
           </table>
         </div>
         <div style="display:flex;gap:16px;flex-wrap:wrap">
-          <div style="flex:1;min-width:200px;border:2px solid #333;border-radius:6px;overflow:hidden">
+          <div style="flex:1;min-width:180px;border:2px solid #333;border-radius:6px;overflow:hidden">
             <div style="background:#333;color:#fff;padding:8px 12px;font-weight:700;font-size:13px">🏢 OFICINA — ${totalO} vianda${totalO!==1?'s':''}</div>
             <table style="width:100%;border-collapse:collapse;font-size:13px">
               <thead><tr><th style="padding:5px 10px;background:#f5f5f5;text-align:left">Vianda</th><th style="padding:5px 10px;background:#f5f5f5;text-align:center">Cant.</th></tr></thead>
               <tbody>${rowsO||'<tr><td colspan="2" style="padding:8px 10px;color:#999">Sin pedidos</td></tr>'}</tbody>
             </table>
           </div>
-          <div style="flex:1;min-width:200px;border:2px solid #333;border-radius:6px;overflow:hidden">
+          <div style="flex:1;min-width:180px;border:2px solid #333;border-radius:6px;overflow:hidden">
             <div style="background:#333;color:#fff;padding:8px 12px;font-weight:700;font-size:13px">🔧 TALLER — ${totalT} vianda${totalT!==1?'s':''}</div>
             <table style="width:100%;border-collapse:collapse;font-size:13px">
               <thead><tr><th style="padding:5px 10px;background:#f5f5f5;text-align:left">Vianda</th><th style="padding:5px 10px;background:#f5f5f5;text-align:center">Cant.</th></tr></thead>
               <tbody>${rowsT||'<tr><td colspan="2" style="padding:8px 10px;color:#999">Sin pedidos</td></tr>'}</tbody>
             </table>
           </div>
+          ${totalR>0?`<div style="flex:1;min-width:180px;border:2px solid #2d6a4f;border-radius:6px;overflow:hidden">
+            <div style="background:#2d6a4f;color:#fff;padding:8px 12px;font-weight:700;font-size:13px">🏭 REFINERÍA — ${totalR} vianda${totalR!==1?'s':''}</div>
+            <table style="width:100%;border-collapse:collapse;font-size:13px">
+              <thead><tr><th style="padding:5px 10px;background:#f5f5f5;text-align:left">Vianda</th><th style="padding:5px 10px;background:#f5f5f5;text-align:center">Cant.</th></tr></thead>
+              <tbody>${rowsR||'<tr><td colspan="2" style="padding:8px 10px;color:#999">Sin pedidos</td></tr>'}</tbody>
+            </table>
+          </div>`:''}
         </div>
       </div>`;
   }
@@ -1064,7 +1027,7 @@ function imprimirLista(sec){
 
 // ── NÓMINA GESTIÓN ────────────────────────────────────────
 function addNomina(key) {
-  const inputId = key==='central'?'add-central':`add-obras-${key.split('-')[1]}`;
+  const inputId = key==='central'?'add-central':key==='refineria'?'add-refineria':`add-obras-${key.split('-')[1]}`;
   const input = document.getElementById(inputId);
   const val = input.value.trim().toUpperCase();
   if (!val) { toast('⚠️ Ingresá un nombre',true); return; }
@@ -1094,7 +1057,7 @@ function updateVacNombres(){
   const v=document.getElementById('vac-sector').value, sel=document.getElementById('vac-nombre');
   sel.disabled=!v;
   let arr=[];
-  if(v==='obras-O')arr=nomina('obras-O'); else if(v==='obras-T')arr=nomina('obras-T'); else if(v==='central')arr=nomina('central'); else if(v==='refineria')arr=nomina('refineria');
+  if(v==='obras-O')arr=nomina('obras-O'); else if(v==='obras-T')arr=nomina('obras-T'); else if(v==='central')arr=nomina('central');
   sel.innerHTML='<option value="">— Seleccioná —</option>';
   arr.forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;sel.appendChild(o);});
 }
@@ -1103,7 +1066,7 @@ function submitVac(){
   const desde=document.getElementById('vac-desde').value, hasta=document.getElementById('vac-hasta').value;
   if(!sv){toast('⚠️ Elegí el sector',true);return;} if(!nom){toast('⚠️ Elegí el nombre',true);return;}
   if(!desde||!hasta){toast('⚠️ Completá las fechas',true);return;} if(hasta<desde){toast('⚠️ Hasta ≥ desde',true);return;}
-  const sec=sv.startsWith('obras')?'obras':sv==='refineria'?'refineria':'central', com=sv==='obras-O'?'O':sv==='obras-T'?'T':null;
+  const sec=sv.startsWith('obras')?'obras':'central', com=sv==='obras-O'?'O':sv==='obras-T'?'T':null;
   const vacs=getVacs();
   if(vacs.some(v=>v.nombre===nom&&v.desde===desde&&v.hasta===hasta)){toast('Ya existe ese período',true);return;}
   vacs.push({nombre:nom,sector:sec,comedor:com,desde,hasta});
@@ -1191,7 +1154,7 @@ function renderControl(){
     if(fecha.startsWith('_')) return;
     if(desde && fecha<desde) return;
     if(hasta && fecha>hasta) return;
-    ['obras','central','refineria'].forEach(sec=>{
+    ['obras','central'].forEach(sec=>{
       if(!secs[sec]?.length)return; if(filtro!=='todos'&&filtro!==sec)return;
       const act=secs[sec].filter(p=>p.vianda!=='VAC'&&p.vianda!=='AUS');
       const men=act.filter(p=>ALL_VIANDAS().find(v=>v.c===p.vianda)?.t==='menu');
@@ -1232,7 +1195,7 @@ function exportControl(){
   let csv='Fecha,Sector,Nombre,Vianda,Comedor\n';
   Object.entries(STATE).forEach(([f,secs])=>{
     if(f.startsWith('_'))return;
-    ['obras','central','refineria'].forEach(sec=>{
+    ['obras','central'].forEach(sec=>{
       (secs[sec]||[]).forEach(p=>{
         if(!p._manual) csv+=`${f},${sec},"${p.nombre}",${p.vianda},${p.sector||'—'}\n`;
       });
@@ -1264,7 +1227,7 @@ function imprimirControl(){
     if(fecha.startsWith('_')) return;
     if(desde && fecha<desde) return;
     if(hasta && fecha>hasta) return;
-    ['obras','central','refineria'].forEach(sec=>{
+    ['obras','central'].forEach(sec=>{
       if(filtro!=='todos' && filtro!==sec) return;
       if(!secs[sec]?.length) return;
       const act = secs[sec].filter(p=>p.vianda!=='VAC'&&p.vianda!=='AUS');
@@ -1427,8 +1390,7 @@ function modalAgregar() {
   if (!nom) { toast('⚠️ Elegí un nombre',true); return; }
   if (!via) { toast('⚠️ Elegí una vianda',true); return; }
   const sec = _editSec;
-  const sector = sec==='obras' ? (nomina('obras-O').includes(nom)?'O':'T') : null;
-  // refineria has no subsector
+  const sector = sec==='obras' ? (nomina('obras-O').includes(nom)?'O':nomina('obras-T').includes(nom)?'T':'R') : null;
   const pedidos = [...(STATE[_editFecha]?.[sec] || [])];
   const i = pedidos.findIndex(p=>p.nombre===nom);
   const entry = {nombre:nom, vianda:via, sector};
