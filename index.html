@@ -588,9 +588,24 @@ function todayKey(){ return new Date().toISOString().slice(0,10); }
 function startListeners() {
   db.ref('/').on('value', snap => {
     STATE = snap.val() || {};
-    // Re-render everything that's visible
+    // Guardar selección actual antes de reconstruir
+    const prevObrasNombre  = document.getElementById('obras-nombre')?.value || '';
+    const prevObrasVianda  = document.getElementById('obras-vianda')?.value || '';
+    const prevCentralNombre = document.getElementById('central-nombre')?.value || '';
+    const prevCentralVianda = document.getElementById('central-vianda')?.value || '';
+
     rebuildSelects();
-    if (sectorObras) setSector(sectorObras);
+
+    // Restaurar selección si el usuario ya había elegido algo
+    const obrasNom = document.getElementById('obras-nombre');
+    const obrasVia = document.getElementById('obras-vianda');
+    const centralNom = document.getElementById('central-nombre');
+    const centralVia = document.getElementById('central-vianda');
+    if (obrasNom  && prevObrasNombre)   obrasNom.value  = prevObrasNombre;
+    if (obrasVia  && prevObrasVianda)   obrasVia.value  = prevObrasVianda;
+    if (centralNom && prevCentralNombre) centralNom.value = prevCentralNombre;
+    if (centralVia && prevCentralVianda) centralVia.value = prevCentralVianda;
+
     if (authed) refreshGestion();
   });
 }
@@ -784,7 +799,6 @@ function fillViandas(id, extras=[]) {
 }
 function rebuildSelects() {
   fillNombres('central-nombre', nominaDisponible('central'));
-  if(sectorObras) setSector(sectorObras);
 }
 
 // ── SECTOR ─────────────────────────────────────────────────
