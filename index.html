@@ -588,21 +588,29 @@ function todayKey(){ return new Date().toISOString().slice(0,10); }
 function startListeners() {
   db.ref('/').on('value', snap => {
     STATE = snap.val() || {};
+
     // Guardar selección actual antes de reconstruir
-    const prevObrasNombre  = document.getElementById('obras-nombre')?.value || '';
-    const prevObrasVianda  = document.getElementById('obras-vianda')?.value || '';
+    const prevObrasNombre   = document.getElementById('obras-nombre')?.value || '';
+    const prevObrasVianda   = document.getElementById('obras-vianda')?.value || '';
     const prevCentralNombre = document.getElementById('central-nombre')?.value || '';
     const prevCentralVianda = document.getElementById('central-vianda')?.value || '';
 
     rebuildSelects();
 
+    // Si hay un sector de obras seleccionado, reconstruir ese dropdown también
+    if (sectorObras) {
+      const key = sectorObras==='O'?'obras-O':sectorObras==='T'?'obras-T':'refineria';
+      fillNombres('obras-nombre', nominaDisponible(key));
+      document.getElementById('obras-nombre').disabled = false;
+    }
+
     // Restaurar selección si el usuario ya había elegido algo
-    const obrasNom = document.getElementById('obras-nombre');
-    const obrasVia = document.getElementById('obras-vianda');
+    const obrasNom  = document.getElementById('obras-nombre');
+    const obrasVia  = document.getElementById('obras-vianda');
     const centralNom = document.getElementById('central-nombre');
     const centralVia = document.getElementById('central-vianda');
-    if (obrasNom  && prevObrasNombre)   obrasNom.value  = prevObrasNombre;
-    if (obrasVia  && prevObrasVianda)   obrasVia.value  = prevObrasVianda;
+    if (obrasNom  && prevObrasNombre)    obrasNom.value   = prevObrasNombre;
+    if (obrasVia  && prevObrasVianda)    obrasVia.value   = prevObrasVianda;
     if (centralNom && prevCentralNombre) centralNom.value = prevCentralNombre;
     if (centralVia && prevCentralVianda) centralVia.value = prevCentralVianda;
 
@@ -625,7 +633,11 @@ function fbRemove(path) {
 // ── NÓMINA ────────────────────────────────────────────────
 function nomina(key) {
   const custom = STATE._nomina?.[key];
-  if (custom) return [...custom].sort();
+  if (custom) {
+    // Firebase puede devolver un objeto {0:'nombre', 1:'nombre'} en lugar de array
+    const arr = Array.isArray(custom) ? custom : Object.values(custom);
+    return arr.filter(Boolean).sort();
+  }
   if (key === 'obras-O') return [...BASE_OBRAS_O].sort();
   if (key === 'obras-T') return [...BASE_OBRAS_T].sort();
   if (key === 'central') return [...BASE_CENTRAL].sort();
@@ -638,7 +650,9 @@ function setNomina(key, arr) {
 
 // ── PEDIDOS ───────────────────────────────────────────────
 function getPedidos(sec) {
-  return STATE[todayKey()]?.[sec] || [];
+  const p = STATE[todayKey()]?.[sec];
+  if (!p) return [];
+  return Array.isArray(p) ? p : Object.values(p).filter(Boolean);
 }
 function addPedido(sec, p) {
   const k = todayKey();
@@ -654,7 +668,11 @@ function removePedido(sec, nom) {
 }
 
 // ── VACACIONES ────────────────────────────────────────────
-function getVacs() { return STATE._vac || []; }
+function getVacs() {
+  const v = STATE._vac;
+  if (!v) return [];
+  return Array.isArray(v) ? v : Object.values(v).filter(Boolean);
+}
 function setVacs(v) { return fbSet('/_vac', v.length ? v : null); }
 function isVac(nom, sec, fecha) {
   return getVacs().some(v => v.nombre===nom && v.sector===sec && fecha>=v.desde && fecha<=v.hasta);
