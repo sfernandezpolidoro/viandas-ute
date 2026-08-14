@@ -926,9 +926,15 @@ function buildMsg(sec){
     const of=act.filter(p=>p.sector==='O'),ta=act.filter(p=>p.sector==='T'),re=act.filter(p=>p.sector==='R');
     let m=`📋 PEDIDO UTE INGENIERÍA & CONSTRUCCIONES\n${hoy}\n\nTotal: ${act.length} viandas\n${fmt(grp(act))}`;
     if(re.length) m+=`\n\n🏭 REFINERÍA (${re.length})\n${fmt(grp(re))}`;
+    // Nota especial para Santiago
+    const santi = act.find(p=>p.nombre==='FERNANDEZ POLIDORO SANTIAGO');
+    if(santi) m+=`\n\n⚠️ NOTA: 1 entrada sin TACC (FERNANDEZ POLIDORO SANTIAGO)`;
     return m.trim();
   }
-  return `📋 PEDIDO UTE CENTRAL\n${hoy}\n\nTotal: ${act.length} viandas\n${fmt(grp(act))}`;
+  const santiC = act.find(p=>p.nombre==='FERNANDEZ POLIDORO SANTIAGO');
+  let msgC = `📋 PEDIDO UTE CENTRAL\n${hoy}\n\nTotal: ${act.length} viandas\n${fmt(grp(act))}`;
+  if(santiC) msgC += `\n\n⚠️ NOTA: 1 entrada sin TACC (FERNANDEZ POLIDORO SANTIAGO)`;
+  return msgC;
 }
 function renderMsgs(){
   document.getElementById('g-obras-msg').textContent=buildMsg('obras');
