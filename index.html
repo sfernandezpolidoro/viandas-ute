@@ -249,6 +249,10 @@
     </div>
     <button class="btn-submit" onclick="submitObras()">✓ Enviar pedido</button>
   </div>
+  <div class="card" style="margin-top:16px">
+    <div class="card-title">Pedidos confirmados hoy</div>
+    <div id="pub-obras-lista"><div style="color:var(--muted);font-size:13px">Cargando...</div></div>
+  </div>
 </div>
 
 <!-- ══ CENTRAL ══ -->
@@ -268,6 +272,10 @@
       <select id="central-vianda"><option value="">— Seleccioná tu vianda —</option></select>
     </div>
     <button class="btn-submit" onclick="submitCentral()">✓ Enviar pedido</button>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <div class="card-title">Pedidos confirmados hoy</div>
+    <div id="pub-central-lista"><div style="color:var(--muted);font-size:13px">Cargando...</div></div>
   </div>
 </div>
 
@@ -614,6 +622,7 @@ function startListeners() {
     if (centralNom && prevCentralNombre) centralNom.value = prevCentralNombre;
     if (centralVia && prevCentralVianda) centralVia.value = prevCentralVianda;
 
+    renderPublicListas();
     if (authed) refreshGestion();
   });
 }
@@ -715,7 +724,7 @@ function logout() {
 let sectorObras = null;
 
 // ── HORARIO LÍMITE ─────────────────────────────────────────
-const HORA_LIMITE = { h: 8, m: 30 }; // 8:30 am
+const HORA_LIMITE = { h: 8, m: 0 }; // 8:00 am
 
 function isPastDeadline() {
   const ahora = new Date();
@@ -840,7 +849,7 @@ function submitObras() {
   if(!nom)         { toast('⚠️ Elegí tu nombre',true); return; }
   if(!via)         { toast('⚠️ Elegí tu vianda',true); return; }
   addPedido('obras',{nombre:nom,vianda:via,sector:sectorObras})
-    .then(()=>toast('✓ Pedido cargado'))
+    .then(()=>{ toast('✓ Pedido cargado'); renderPublicListas(); })
     .catch(()=>toast('⚠️ Error al guardar',true));
   document.getElementById('obras-nombre').value='';
   document.getElementById('obras-vianda').value='';
@@ -852,7 +861,7 @@ function submitCentral() {
   if(!nom) { toast('⚠️ Elegí tu nombre',true); return; }
   if(!via) { toast('⚠️ Elegí tu vianda',true); return; }
   addPedido('central',{nombre:nom,vianda:via})
-    .then(()=>toast('✓ Pedido cargado'))
+    .then(()=>{ toast('✓ Pedido cargado'); renderPublicListas(); })
     .catch(()=>toast('⚠️ Error al guardar',true));
   document.getElementById('central-nombre').value='';
   document.getElementById('central-vianda').value='';
@@ -939,6 +948,29 @@ function buildMsg(sec){
 function renderMsgs(){
   document.getElementById('g-obras-msg').textContent=buildMsg('obras');
   document.getElementById('g-central-msg').textContent=buildMsg('central');
+}
+
+function renderPublicListas() {
+  ['obras','central'].forEach(sec => {
+    const el = document.getElementById(`pub-${sec}-lista`);
+    if (!el) return;
+    const pedidos = getPedidos(sec).filter(p=>!p._manual);
+    const sorted = [...pedidos].sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
+    if (!sorted.length) {
+      el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:4px 0">Ningún pedido cargado todavía.</div>';
+      return;
+    }
+    el.innerHTML = sorted.map(p => {
+      const isV = p.vianda==='VAC', isA = p.vianda==='AUS';
+      const viaLabel = isV?'Vacaciones':isA?'Ausente':vLabel(p.vianda);
+      const color = isV?'var(--col-vac)':isA?'var(--danger)':'var(--success)';
+      const secBadge = sec==='obras'&&p.sector ? `<span class="badge badge-${p.sector}" style="margin-right:6px">${p.sector}</span>` : '';
+      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;margin-bottom:5px;font-size:13px">
+        <span style="font-weight:500;flex:1">${p.nombre}</span>
+        <div style="display:flex;align-items:center;gap:6px">${secBadge}<span style="color:${color};font-family:IBM Plex Mono,monospace;font-size:11px;font-weight:600">${p.vianda} — ${viaLabel}</span></div>
+      </div>`;
+    }).join('');
+  });
 }
 function copyMsg(sec){
   const txt = document.getElementById(`g-${sec}-msg`).textContent;
