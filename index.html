@@ -724,20 +724,30 @@ function logout() {
 let sectorObras = null;
 
 // ── HORARIO LÍMITE ─────────────────────────────────────────
-const HORA_LIMITE = { h: 8, m: 0 }; // 8:00 am
+// Ingeniería & Obras (Oficina, Taller, Refinería): 8:00 hs
+// UTE Central: 8:30 hs
+const HORA_LIMITE = {
+  obras:   { h: 8, m: 0  }, // 8:00 am
+  central: { h: 8, m: 30 }  // 8:30 am
+};
 
-function isPastDeadline() {
+function isPastDeadline(tab) {
+  const hl = HORA_LIMITE[tab] || HORA_LIMITE.obras;
   const ahora = new Date();
   const limite = new Date();
-  limite.setHours(HORA_LIMITE.h, HORA_LIMITE.m, 0, 0);
+  limite.setHours(hl.h, hl.m, 0, 0);
   return ahora.getTime() > limite.getTime();
 }
 
-function applyDeadlineLock() {
-  const cerrado = isPastDeadline();
-  const horaStr = `${String(HORA_LIMITE.h).padStart(2,'0')}:${String(HORA_LIMITE.m).padStart(2,'0')}`;
+function horaLimiteStr(tab) {
+  const hl = HORA_LIMITE[tab] || HORA_LIMITE.obras;
+  return `${String(hl.h).padStart(2,'0')}:${String(hl.m).padStart(2,'0')}`;
+}
 
+function applyDeadlineLock() {
   ['obras','central'].forEach(tab => {
+    const cerrado = isPastDeadline(tab);
+    const horaStr = horaLimiteStr(tab);
     const card = document.querySelector(`#page-${tab} .card`);
     if (!card) return;
     let banner = document.getElementById(`cerrado-${tab}`);
@@ -842,7 +852,7 @@ function setSector(s) {
 
 // ── SUBMIT ─────────────────────────────────────────────────
 function submitObras() {
-  if(isPastDeadline()) { toast('⚠️ El horario de pedido ya cerró',true); applyDeadlineLock(); return; }
+  if(isPastDeadline('obras')) { toast('⚠️ El horario de pedido ya cerró (límite 8:00 hs)',true); applyDeadlineLock(); return; }
   const nom=document.getElementById('obras-nombre').value;
   const via=document.getElementById('obras-vianda').value;
   if(!sectorObras) { toast('⚠️ Elegí Oficina, Taller o Refinería',true); return; }
@@ -855,7 +865,7 @@ function submitObras() {
   document.getElementById('obras-vianda').value='';
 }
 function submitCentral() {
-  if(isPastDeadline()) { toast('⚠️ El horario de pedido ya cerró',true); applyDeadlineLock(); return; }
+  if(isPastDeadline('central')) { toast('⚠️ El horario de pedido ya cerró (límite 8:30 hs)',true); applyDeadlineLock(); return; }
   const nom=document.getElementById('central-nombre').value;
   const via=document.getElementById('central-vianda').value;
   if(!nom) { toast('⚠️ Elegí tu nombre',true); return; }
