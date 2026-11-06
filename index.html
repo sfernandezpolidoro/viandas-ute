@@ -931,7 +931,7 @@ function asignCentral(sn){
 function asignRefineria(sn){
   const n=realN(sn),sel=document.getElementById(`ps-refineria-${sn}`);
   if(!sel?.value){toast('⚠️ Elegí una opción',true);return;}
-  addPedido('refineria',{nombre:n,vianda:sel.value}).then(()=>toast(`✓ Asignado: ${n}`));
+  addPedido('obras',{nombre:n,vianda:sel.value,sector:'R'}).then(()=>toast(`✓ Asignado: ${n}`));
 }
 
 // MENSAJES
